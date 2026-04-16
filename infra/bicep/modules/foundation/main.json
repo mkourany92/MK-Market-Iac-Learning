@@ -1,0 +1,65 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "metadata": {
+    "_generator": {
+      "name": "bicep",
+      "version": "0.42.1.51946",
+      "templateHash": "9238583879618543264"
+    }
+  },
+  "parameters": {
+    "environment": {
+      "type": "string",
+      "allowedValues": [
+        "dev",
+        "test",
+        "prod"
+      ]
+    },
+    "location": {
+      "type": "string"
+    },
+    "projectName": {
+      "type": "string"
+    },
+    "prefix": {
+      "type": "string"
+    },
+    "owner": {
+      "type": "string"
+    },
+    "costCenter": {
+      "type": "string"
+    }
+  },
+  "variables": {
+    "commonTags": {
+      "project": "[parameters('projectName')]",
+      "environment": "[parameters('environment')]",
+      "owner": "[parameters('owner')]",
+      "cost-center": "[parameters('costCenter')]",
+      "managed-by": "bicep"
+    },
+    "namePrefix": "[format('{0}-{1}', parameters('prefix'), parameters('environment'))]"
+  },
+  "resources": [],
+  "outputs": {
+    "commonTags": {
+      "type": "object",
+      "value": "[variables('commonTags')]"
+    },
+    "namePrefix": {
+      "type": "string",
+      "value": "[variables('namePrefix')]"
+    },
+    "environment": {
+      "type": "string",
+      "value": "[parameters('environment')]"
+    },
+    "location": {
+      "type": "string",
+      "value": "[parameters('location')]"
+    }
+  }
+}
