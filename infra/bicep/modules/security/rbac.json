@@ -1,0 +1,112 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "metadata": {
+    "_generator": {
+      "name": "bicep",
+      "version": "0.42.1.51946",
+      "templateHash": "1056154965107434438"
+    }
+  },
+  "parameters": {
+    "keyVaultId": {
+      "type": "string"
+    },
+    "storageAccountId": {
+      "type": "string"
+    },
+    "acrId": {
+      "type": "string"
+    },
+    "appIdentityPrincipalId": {
+      "type": "string"
+    },
+    "agentIdentityPrincipalId": {
+      "type": "string"
+    },
+    "aksIdentityPrincipalId": {
+      "type": "string"
+    }
+  },
+  "variables": {
+    "keyVaultSecretsOfficerRole": "a4417e6f-fecd-4de8-b567-7b0420556985",
+    "storageAccountAcrPullRole": "7f951ff9-586f-40af-ae5e-a91766141a92",
+    "storageBlobDataReaderRole": "2a2b9908-6ea1-4ae2-8e65-a410df84e7d1",
+    "storageBlobDataContributorRole": "ba92f5b4-2d11-453d-a403-e96b0029c9fe",
+    "containerRegistryPullRole": "7f951ff9-586f-40af-ae5e-a91766141a92"
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Authorization/roleAssignments",
+      "apiVersion": "2022-04-01",
+      "name": "[guid(parameters('keyVaultId'), parameters('appIdentityPrincipalId'), variables('keyVaultSecretsOfficerRole'))]",
+      "properties": {
+        "roleDefinitionId": "[format('/subscriptions/{0}/providers/Microsoft.Authorization/roleDefinitions/{1}', subscription().subscriptionId, variables('keyVaultSecretsOfficerRole'))]",
+        "principalId": "[parameters('appIdentityPrincipalId')]",
+        "principalType": "ServicePrincipal"
+      }
+    },
+    {
+      "type": "Microsoft.Authorization/roleAssignments",
+      "apiVersion": "2022-04-01",
+      "name": "[guid(parameters('storageAccountId'), parameters('appIdentityPrincipalId'), variables('storageBlobDataReaderRole'))]",
+      "properties": {
+        "roleDefinitionId": "[format('/subscriptions/{0}/providers/Microsoft.Authorization/roleDefinitions/{1}', subscription().subscriptionId, variables('storageBlobDataReaderRole'))]",
+        "principalId": "[parameters('appIdentityPrincipalId')]",
+        "principalType": "ServicePrincipal"
+      }
+    },
+    {
+      "type": "Microsoft.Authorization/roleAssignments",
+      "apiVersion": "2022-04-01",
+      "name": "[guid(parameters('acrId'), parameters('aksIdentityPrincipalId'), variables('containerRegistryPullRole'))]",
+      "properties": {
+        "roleDefinitionId": "[format('/subscriptions/{0}/providers/Microsoft.Authorization/roleDefinitions/{1}', subscription().subscriptionId, variables('containerRegistryPullRole'))]",
+        "principalId": "[parameters('aksIdentityPrincipalId')]",
+        "principalType": "ServicePrincipal"
+      }
+    },
+    {
+      "type": "Microsoft.Authorization/roleAssignments",
+      "apiVersion": "2022-04-01",
+      "name": "[guid(parameters('storageAccountId'), parameters('agentIdentityPrincipalId'), variables('storageBlobDataContributorRole'))]",
+      "properties": {
+        "roleDefinitionId": "[format('/subscriptions/{0}/providers/Microsoft.Authorization/roleDefinitions/{1}', subscription().subscriptionId, variables('storageBlobDataContributorRole'))]",
+        "principalId": "[parameters('agentIdentityPrincipalId')]",
+        "principalType": "ServicePrincipal"
+      }
+    },
+    {
+      "type": "Microsoft.Authorization/roleAssignments",
+      "apiVersion": "2022-04-01",
+      "name": "[guid(parameters('keyVaultId'), parameters('agentIdentityPrincipalId'), variables('keyVaultSecretsOfficerRole'))]",
+      "properties": {
+        "roleDefinitionId": "[format('/subscriptions/{0}/providers/Microsoft.Authorization/roleDefinitions/{1}', subscription().subscriptionId, variables('keyVaultSecretsOfficerRole'))]",
+        "principalId": "[parameters('agentIdentityPrincipalId')]",
+        "principalType": "ServicePrincipal"
+      }
+    }
+  ],
+  "outputs": {
+    "appKeyVaultAssignmentId": {
+      "type": "string",
+      "value": "[resourceId('Microsoft.Authorization/roleAssignments', guid(parameters('keyVaultId'), parameters('appIdentityPrincipalId'), variables('keyVaultSecretsOfficerRole')))]"
+    },
+    "appStorageAssignmentId": {
+      "type": "string",
+      "value": "[resourceId('Microsoft.Authorization/roleAssignments', guid(parameters('storageAccountId'), parameters('appIdentityPrincipalId'), variables('storageBlobDataReaderRole')))]"
+    },
+    "aksACRAssignmentId": {
+      "type": "string",
+      "value": "[resourceId('Microsoft.Authorization/roleAssignments', guid(parameters('acrId'), parameters('aksIdentityPrincipalId'), variables('containerRegistryPullRole')))]"
+    },
+    "agentStorageAssignmentId": {
+      "type": "string",
+      "value": "[resourceId('Microsoft.Authorization/roleAssignments', guid(parameters('storageAccountId'), parameters('agentIdentityPrincipalId'), variables('storageBlobDataContributorRole')))]"
+    },
+    "agentKeyVaultAssignmentId": {
+      "type": "string",
+      "value": "[resourceId('Microsoft.Authorization/roleAssignments', guid(parameters('keyVaultId'), parameters('agentIdentityPrincipalId'), variables('keyVaultSecretsOfficerRole')))]"
+    }
+  }
+}

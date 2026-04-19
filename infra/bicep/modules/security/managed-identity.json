@@ -1,0 +1,54 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "metadata": {
+    "_generator": {
+      "name": "bicep",
+      "version": "0.42.1.51946",
+      "templateHash": "12644865000314515470"
+    }
+  },
+  "parameters": {
+    "identityNames": {
+      "type": "array"
+    },
+    "location": {
+      "type": "string"
+    },
+    "tags": {
+      "type": "object"
+    }
+  },
+  "variables": {
+    "copy": [
+      {
+        "name": "identities",
+        "count": "[length(parameters('identityNames'))]",
+        "input": {
+          "name": "[parameters('identityNames')[copyIndex('identities')]]",
+          "principalId": "[format('{0}PrincipalId', parameters('identityNames')[copyIndex('identities')])]"
+        }
+      }
+    ]
+  },
+  "resources": [],
+  "outputs": {
+    "identityObjects": {
+      "type": "object",
+      "value": {
+        "app": {
+          "id": "will_be_set_by_parent",
+          "principalId": "will_be_set_by_parent"
+        },
+        "aks": {
+          "id": "will_be_set_by_parent",
+          "principalId": "will_be_set_by_parent"
+        },
+        "agent": {
+          "id": "will_be_set_by_parent",
+          "principalId": "will_be_set_by_parent"
+        }
+      }
+    }
+  }
+}
