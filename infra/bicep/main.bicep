@@ -36,9 +36,7 @@ module network './modules/network/main.bicep' = {
     environment: environment
     bastionEnabled: (environment != 'prod')
   }
-  dependsOn: [
-    foundation
-  ]
+  dependsOn: [ foundation ]
 }
 
 module storage './modules/storage/main.bicep' = {
@@ -51,9 +49,7 @@ module storage './modules/storage/main.bicep' = {
     accessTier: (environment == 'prod' ? 'Cool' : 'Hot')
     acrSku: 'Basic'
   }
-  dependsOn: [
-    foundation
-  ]
+  dependsOn: [ foundation ]
 }
 
 module monitoring './modules/monitoring/main.bicep' = {
@@ -65,9 +61,24 @@ module monitoring './modules/monitoring/main.bicep' = {
     prefix: foundation.outputs.namePrefix
     alertEmail: alertEmail
   }
-  dependsOn: [
-    foundation
-  ]
+  dependsOn: [ foundation ]
+}
+
+module compute './modules/compute/main.bicep' = {
+  name: 'compute-${environment}'
+  params: {
+    environment: environment
+    location: location
+    tags: foundation.outputs.commonTags
+    namePrefix: foundation.outputs.namePrefix
+    aksSubnetId: network.outputs.aksSubnetId
+    appServiceSubnetId: network.outputs.appserviceSubnetId
+    managementSubnetId: network.outputs.managementSubnetId
+    logAnalyticsWorkspaceId: monitoring.outputs.workspaceId
+    appInsightsConnectionString: monitoring.outputs.appInsightsConnectionString
+    keyVaultName: '${foundation.outputs.namePrefix}-kv'
+  }
+  dependsOn: [ network, storage, monitoring ]
 }
 
 output commonTags object = foundation.outputs.commonTags
@@ -79,3 +90,7 @@ output acrLoginServer string = storage.outputs.acrLoginServer
 output logAnalyticsWorkspaceId string = monitoring.outputs.workspaceId
 output appInsightsId string = monitoring.outputs.appInsightsId
 output actionGroupId string = monitoring.outputs.actionGroupId
+output aksClusterId string = compute.outputs.aksClusterId
+output aksClusterName string = compute.outputs.aksClusterName
+output appServiceId string = compute.outputs.appServiceId
+output agentVmId string = compute.outputs.agentVmId

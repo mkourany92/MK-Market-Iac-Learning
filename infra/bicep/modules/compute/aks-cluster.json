@@ -1,0 +1,122 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "metadata": {
+    "_generator": {
+      "name": "bicep",
+      "version": "0.42.1.51946",
+      "templateHash": "254455841877430996"
+    }
+  },
+  "parameters": {
+    "clusterName": {
+      "type": "string"
+    },
+    "location": {
+      "type": "string"
+    },
+    "tags": {
+      "type": "object"
+    },
+    "aksSubnetId": {
+      "type": "string"
+    },
+    "logAnalyticsWorkspaceId": {
+      "type": "string"
+    },
+    "nodeCount": {
+      "type": "int",
+      "defaultValue": 2
+    },
+    "minNodeCount": {
+      "type": "int",
+      "defaultValue": 1
+    },
+    "maxNodeCount": {
+      "type": "int",
+      "defaultValue": 3
+    },
+    "vmSize": {
+      "type": "string",
+      "defaultValue": "Standard_B2s"
+    }
+  },
+  "resources": [
+    {
+      "type": "Microsoft.ContainerService/managedClusters",
+      "apiVersion": "2024-02-01",
+      "name": "[parameters('clusterName')]",
+      "location": "[parameters('location')]",
+      "tags": "[parameters('tags')]",
+      "identity": {
+        "type": "SystemAssigned"
+      },
+      "properties": {
+        "dnsPrefix": "[parameters('clusterName')]",
+        "enableRBAC": true,
+        "oidcIssuerProfile": {
+          "enabled": true
+        },
+        "securityProfile": {
+          "workloadIdentity": {
+            "enabled": true
+          }
+        },
+        "agentPoolProfiles": [
+          {
+            "name": "system",
+            "count": "[parameters('nodeCount')]",
+            "minCount": "[parameters('minNodeCount')]",
+            "maxCount": "[parameters('maxNodeCount')]",
+            "enableAutoScaling": true,
+            "vmSize": "[parameters('vmSize')]",
+            "osType": "Linux",
+            "mode": "System",
+            "osDiskType": "Managed",
+            "osDiskSizeGB": 64,
+            "vnetSubnetID": "[parameters('aksSubnetId')]"
+          }
+        ],
+        "networkProfile": {
+          "networkPlugin": "azure",
+          "networkPolicy": "azure",
+          "serviceCidr": "172.16.0.0/16",
+          "dnsServiceIP": "172.16.0.10"
+        },
+        "addonProfiles": {
+          "omsagent": {
+            "enabled": true,
+            "config": {
+              "logAnalyticsWorkspaceResourceID": "[parameters('logAnalyticsWorkspaceId')]"
+            }
+          }
+        },
+        "autoUpgradeProfile": {
+          "upgradeChannel": "patch"
+        }
+      }
+    }
+  ],
+  "outputs": {
+    "aksClusterId": {
+      "type": "string",
+      "value": "[resourceId('Microsoft.ContainerService/managedClusters', parameters('clusterName'))]"
+    },
+    "aksClusterName": {
+      "type": "string",
+      "value": "[parameters('clusterName')]"
+    },
+    "aksNodeResourceGroup": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.ContainerService/managedClusters', parameters('clusterName')), '2024-02-01').nodeResourceGroup]"
+    },
+    "aksPrincipalId": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.ContainerService/managedClusters', parameters('clusterName')), '2024-02-01', 'full').identity.principalId]"
+    },
+    "aksOidcIssuerUrl": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.ContainerService/managedClusters', parameters('clusterName')), '2024-02-01').oidcIssuerProfile.issuerURL]"
+    }
+  }
+}
