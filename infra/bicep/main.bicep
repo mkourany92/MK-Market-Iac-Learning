@@ -12,6 +12,7 @@ param projectName string = 'mkmarket-web-market'
 param prefix string = 'mkmarket'
 param owner string = 'mkmarket-owner'
 param costCenter string = 'mkmarket-lab'
+param alertEmail string = 'replace-me@example.com'
 
 module foundation './modules/foundation/main.bicep' = {
   name: 'foundation-${environment}'
@@ -55,9 +56,26 @@ module storage './modules/storage/main.bicep' = {
   ]
 }
 
+module monitoring './modules/monitoring/main.bicep' = {
+  name: 'monitoring-${environment}'
+  params: {
+    environment: environment
+    location: location
+    tags: foundation.outputs.commonTags
+    prefix: foundation.outputs.namePrefix
+    alertEmail: alertEmail
+  }
+  dependsOn: [
+    foundation
+  ]
+}
+
 output commonTags object = foundation.outputs.commonTags
 output namePrefix string = foundation.outputs.namePrefix
 output vnetId string = network.outputs.vnetId
 output storageAccountId string = storage.outputs.storageAccountId
 output acrId string = storage.outputs.acrId
 output acrLoginServer string = storage.outputs.acrLoginServer
+output logAnalyticsWorkspaceId string = monitoring.outputs.workspaceId
+output appInsightsId string = monitoring.outputs.appInsightsId
+output actionGroupId string = monitoring.outputs.actionGroupId

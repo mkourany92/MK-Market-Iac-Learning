@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.42.1.51946",
-      "templateHash": "2790086218467818771"
+      "templateHash": "2205376165246648394"
     }
   },
   "parameters": {
@@ -37,6 +37,10 @@
     "costCenter": {
       "type": "string",
       "defaultValue": "mkmarket-lab"
+    },
+    "alertEmail": {
+      "type": "string",
+      "defaultValue": "replace-me@example.com"
     }
   },
   "resources": [
@@ -135,6 +139,1766 @@
           }
         }
       }
+    },
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "[format('network-{0}', parameters('environment'))]",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "vnetName": {
+            "value": "[format('{0}-vnet', reference(resourceId('Microsoft.Resources/deployments', format('foundation-{0}', parameters('environment'))), '2025-04-01').outputs.namePrefix.value)]"
+          },
+          "vnetCIDR": {
+            "value": "10.0.0.0/16"
+          },
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "tags": {
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', format('foundation-{0}', parameters('environment'))), '2025-04-01').outputs.commonTags.value]"
+          },
+          "environment": {
+            "value": "[parameters('environment')]"
+          },
+          "bastionEnabled": {
+            "value": "[not(equals(parameters('environment'), 'prod'))]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.42.1.51946",
+              "templateHash": "7619531038811957884"
+            }
+          },
+          "parameters": {
+            "vnetName": {
+              "type": "string"
+            },
+            "vnetCIDR": {
+              "type": "string"
+            },
+            "location": {
+              "type": "string"
+            },
+            "tags": {
+              "type": "object"
+            },
+            "environment": {
+              "type": "string"
+            },
+            "bastionEnabled": {
+              "type": "bool"
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.Resources/deployments",
+              "apiVersion": "2025-04-01",
+              "name": "vnet-module",
+              "properties": {
+                "expressionEvaluationOptions": {
+                  "scope": "inner"
+                },
+                "mode": "Incremental",
+                "parameters": {
+                  "vnetName": {
+                    "value": "[parameters('vnetName')]"
+                  },
+                  "vnetCIDR": {
+                    "value": "[parameters('vnetCIDR')]"
+                  },
+                  "location": {
+                    "value": "[parameters('location')]"
+                  },
+                  "tags": {
+                    "value": "[parameters('tags')]"
+                  }
+                },
+                "template": {
+                  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                  "contentVersion": "1.0.0.0",
+                  "metadata": {
+                    "_generator": {
+                      "name": "bicep",
+                      "version": "0.42.1.51946",
+                      "templateHash": "10582268671817146322"
+                    }
+                  },
+                  "parameters": {
+                    "vnetName": {
+                      "type": "string"
+                    },
+                    "vnetCIDR": {
+                      "type": "string"
+                    },
+                    "location": {
+                      "type": "string"
+                    },
+                    "tags": {
+                      "type": "object"
+                    }
+                  },
+                  "resources": [
+                    {
+                      "type": "Microsoft.Network/virtualNetworks",
+                      "apiVersion": "2023-04-01",
+                      "name": "[parameters('vnetName')]",
+                      "location": "[parameters('location')]",
+                      "tags": "[parameters('tags')]",
+                      "properties": {
+                        "addressSpace": {
+                          "addressPrefixes": [
+                            "[parameters('vnetCIDR')]"
+                          ]
+                        },
+                        "subnets": [
+                          {
+                            "name": "management",
+                            "properties": {
+                              "addressPrefix": "[cidrSubnet(parameters('vnetCIDR'), 26, 0)]",
+                              "privateEndpointNetworkPolicies": "Disabled",
+                              "privateLinkServiceNetworkPolicies": "Disabled"
+                            }
+                          },
+                          {
+                            "name": "aks",
+                            "properties": {
+                              "addressPrefix": "[cidrSubnet(parameters('vnetCIDR'), 22, 1)]",
+                              "privateEndpointNetworkPolicies": "Disabled",
+                              "privateLinkServiceNetworkPolicies": "Disabled"
+                            }
+                          },
+                          {
+                            "name": "appservice",
+                            "properties": {
+                              "addressPrefix": "[cidrSubnet(parameters('vnetCIDR'), 24, 8)]",
+                              "privateEndpointNetworkPolicies": "Disabled",
+                              "privateLinkServiceNetworkPolicies": "Disabled",
+                              "delegations": [
+                                {
+                                  "name": "delegation",
+                                  "properties": {
+                                    "serviceName": "Microsoft.Web/serverFarms"
+                                  }
+                                }
+                              ]
+                            }
+                          },
+                          {
+                            "name": "database",
+                            "properties": {
+                              "addressPrefix": "[cidrSubnet(parameters('vnetCIDR'), 24, 12)]",
+                              "privateEndpointNetworkPolicies": "Disabled",
+                              "privateLinkServiceNetworkPolicies": "Disabled"
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  ],
+                  "outputs": {
+                    "vnetId": {
+                      "type": "string",
+                      "value": "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnetName'))]"
+                    },
+                    "vnetName": {
+                      "type": "string",
+                      "value": "[parameters('vnetName')]"
+                    },
+                    "managementSubnetId": {
+                      "type": "string",
+                      "value": "[format('{0}/subnets/management', resourceId('Microsoft.Network/virtualNetworks', parameters('vnetName')))]"
+                    },
+                    "aksSubnetId": {
+                      "type": "string",
+                      "value": "[format('{0}/subnets/aks', resourceId('Microsoft.Network/virtualNetworks', parameters('vnetName')))]"
+                    },
+                    "appserviceSubnetId": {
+                      "type": "string",
+                      "value": "[format('{0}/subnets/appservice', resourceId('Microsoft.Network/virtualNetworks', parameters('vnetName')))]"
+                    },
+                    "databaseSubnetId": {
+                      "type": "string",
+                      "value": "[format('{0}/subnets/database', resourceId('Microsoft.Network/virtualNetworks', parameters('vnetName')))]"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "type": "Microsoft.Resources/deployments",
+              "apiVersion": "2025-04-01",
+              "name": "nsg-management",
+              "properties": {
+                "expressionEvaluationOptions": {
+                  "scope": "inner"
+                },
+                "mode": "Incremental",
+                "parameters": {
+                  "nsgName": {
+                    "value": "[format('{0}-nsg-management', parameters('vnetName'))]"
+                  },
+                  "location": {
+                    "value": "[parameters('location')]"
+                  },
+                  "tags": {
+                    "value": "[parameters('tags')]"
+                  },
+                  "environment": {
+                    "value": "[parameters('environment')]"
+                  }
+                },
+                "template": {
+                  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                  "contentVersion": "1.0.0.0",
+                  "metadata": {
+                    "_generator": {
+                      "name": "bicep",
+                      "version": "0.42.1.51946",
+                      "templateHash": "5354299895719500154"
+                    }
+                  },
+                  "parameters": {
+                    "nsgName": {
+                      "type": "string"
+                    },
+                    "location": {
+                      "type": "string"
+                    },
+                    "tags": {
+                      "type": "object"
+                    },
+                    "environment": {
+                      "type": "string"
+                    }
+                  },
+                  "variables": {
+                    "nsgRules": [
+                      {
+                        "name": "DenyAllInbound",
+                        "properties": {
+                          "protocol": "*",
+                          "sourcePortRange": "*",
+                          "destinationPortRange": "*",
+                          "sourceAddressPrefix": "*",
+                          "destinationAddressPrefix": "*",
+                          "access": "Deny",
+                          "priority": 4096,
+                          "direction": "Inbound"
+                        }
+                      },
+                      {
+                        "name": "AllowRDPFromBastion",
+                        "properties": {
+                          "protocol": "Tcp",
+                          "sourcePortRange": "*",
+                          "destinationPortRange": "3389",
+                          "sourceAddressPrefix": "10.0.1.0/26",
+                          "destinationAddressPrefix": "*",
+                          "access": "Allow",
+                          "priority": 100,
+                          "direction": "Inbound"
+                        }
+                      },
+                      {
+                        "name": "AllowSSHFromBastion",
+                        "properties": {
+                          "protocol": "Tcp",
+                          "sourcePortRange": "*",
+                          "destinationPortRange": "22",
+                          "sourceAddressPrefix": "10.0.1.0/26",
+                          "destinationAddressPrefix": "*",
+                          "access": "Allow",
+                          "priority": 110,
+                          "direction": "Inbound"
+                        }
+                      },
+                      {
+                        "name": "AllowHTTPSInbound",
+                        "properties": {
+                          "protocol": "Tcp",
+                          "sourcePortRange": "*",
+                          "destinationPortRange": "443",
+                          "sourceAddressPrefix": "*",
+                          "destinationAddressPrefix": "*",
+                          "access": "Allow",
+                          "priority": 120,
+                          "direction": "Inbound"
+                        }
+                      },
+                      {
+                        "name": "AllowHTTPInbound",
+                        "properties": {
+                          "protocol": "Tcp",
+                          "sourcePortRange": "*",
+                          "destinationPortRange": "80",
+                          "sourceAddressPrefix": "*",
+                          "destinationAddressPrefix": "*",
+                          "access": "Allow",
+                          "priority": 130,
+                          "direction": "Inbound"
+                        }
+                      },
+                      {
+                        "name": "AllowKubeAPIInbound",
+                        "properties": {
+                          "protocol": "Tcp",
+                          "sourcePortRange": "*",
+                          "destinationPortRange": "6443",
+                          "sourceAddressPrefix": "VirtualNetwork",
+                          "destinationAddressPrefix": "*",
+                          "access": "Allow",
+                          "priority": 140,
+                          "direction": "Inbound"
+                        }
+                      },
+                      {
+                        "name": "DenyAllOutbound",
+                        "properties": {
+                          "protocol": "*",
+                          "sourcePortRange": "*",
+                          "destinationPortRange": "*",
+                          "sourceAddressPrefix": "*",
+                          "destinationAddressPrefix": "*",
+                          "access": "Deny",
+                          "priority": 4096,
+                          "direction": "Outbound"
+                        }
+                      },
+                      {
+                        "name": "AllowHTTPSOutbound",
+                        "properties": {
+                          "protocol": "Tcp",
+                          "sourcePortRange": "*",
+                          "destinationPortRange": "443",
+                          "sourceAddressPrefix": "*",
+                          "destinationAddressPrefix": "Internet",
+                          "access": "Allow",
+                          "priority": 100,
+                          "direction": "Outbound"
+                        }
+                      },
+                      {
+                        "name": "AllowDNSOutbound",
+                        "properties": {
+                          "protocol": "Udp",
+                          "sourcePortRange": "*",
+                          "destinationPortRange": "53",
+                          "sourceAddressPrefix": "*",
+                          "destinationAddressPrefix": "Internet",
+                          "access": "Allow",
+                          "priority": 110,
+                          "direction": "Outbound"
+                        }
+                      },
+                      {
+                        "name": "AllowNTPOutbound",
+                        "properties": {
+                          "protocol": "Udp",
+                          "sourcePortRange": "*",
+                          "destinationPortRange": "123",
+                          "sourceAddressPrefix": "*",
+                          "destinationAddressPrefix": "Internet",
+                          "access": "Allow",
+                          "priority": 120,
+                          "direction": "Outbound"
+                        }
+                      },
+                      {
+                        "name": "AllowVNetOutbound",
+                        "properties": {
+                          "protocol": "*",
+                          "sourcePortRange": "*",
+                          "destinationPortRange": "*",
+                          "sourceAddressPrefix": "VirtualNetwork",
+                          "destinationAddressPrefix": "VirtualNetwork",
+                          "access": "Allow",
+                          "priority": 130,
+                          "direction": "Outbound"
+                        }
+                      }
+                    ]
+                  },
+                  "resources": [
+                    {
+                      "type": "Microsoft.Network/networkSecurityGroups",
+                      "apiVersion": "2023-04-01",
+                      "name": "[parameters('nsgName')]",
+                      "location": "[parameters('location')]",
+                      "tags": "[parameters('tags')]",
+                      "properties": {
+                        "securityRules": "[variables('nsgRules')]"
+                      }
+                    }
+                  ],
+                  "outputs": {
+                    "nsgId": {
+                      "type": "string",
+                      "value": "[resourceId('Microsoft.Network/networkSecurityGroups', parameters('nsgName'))]"
+                    },
+                    "nsgName": {
+                      "type": "string",
+                      "value": "[parameters('nsgName')]"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "type": "Microsoft.Resources/deployments",
+              "apiVersion": "2025-04-01",
+              "name": "nsg-aks",
+              "properties": {
+                "expressionEvaluationOptions": {
+                  "scope": "inner"
+                },
+                "mode": "Incremental",
+                "parameters": {
+                  "nsgName": {
+                    "value": "[format('{0}-nsg-aks', parameters('vnetName'))]"
+                  },
+                  "location": {
+                    "value": "[parameters('location')]"
+                  },
+                  "tags": {
+                    "value": "[parameters('tags')]"
+                  },
+                  "environment": {
+                    "value": "[parameters('environment')]"
+                  }
+                },
+                "template": {
+                  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                  "contentVersion": "1.0.0.0",
+                  "metadata": {
+                    "_generator": {
+                      "name": "bicep",
+                      "version": "0.42.1.51946",
+                      "templateHash": "5354299895719500154"
+                    }
+                  },
+                  "parameters": {
+                    "nsgName": {
+                      "type": "string"
+                    },
+                    "location": {
+                      "type": "string"
+                    },
+                    "tags": {
+                      "type": "object"
+                    },
+                    "environment": {
+                      "type": "string"
+                    }
+                  },
+                  "variables": {
+                    "nsgRules": [
+                      {
+                        "name": "DenyAllInbound",
+                        "properties": {
+                          "protocol": "*",
+                          "sourcePortRange": "*",
+                          "destinationPortRange": "*",
+                          "sourceAddressPrefix": "*",
+                          "destinationAddressPrefix": "*",
+                          "access": "Deny",
+                          "priority": 4096,
+                          "direction": "Inbound"
+                        }
+                      },
+                      {
+                        "name": "AllowRDPFromBastion",
+                        "properties": {
+                          "protocol": "Tcp",
+                          "sourcePortRange": "*",
+                          "destinationPortRange": "3389",
+                          "sourceAddressPrefix": "10.0.1.0/26",
+                          "destinationAddressPrefix": "*",
+                          "access": "Allow",
+                          "priority": 100,
+                          "direction": "Inbound"
+                        }
+                      },
+                      {
+                        "name": "AllowSSHFromBastion",
+                        "properties": {
+                          "protocol": "Tcp",
+                          "sourcePortRange": "*",
+                          "destinationPortRange": "22",
+                          "sourceAddressPrefix": "10.0.1.0/26",
+                          "destinationAddressPrefix": "*",
+                          "access": "Allow",
+                          "priority": 110,
+                          "direction": "Inbound"
+                        }
+                      },
+                      {
+                        "name": "AllowHTTPSInbound",
+                        "properties": {
+                          "protocol": "Tcp",
+                          "sourcePortRange": "*",
+                          "destinationPortRange": "443",
+                          "sourceAddressPrefix": "*",
+                          "destinationAddressPrefix": "*",
+                          "access": "Allow",
+                          "priority": 120,
+                          "direction": "Inbound"
+                        }
+                      },
+                      {
+                        "name": "AllowHTTPInbound",
+                        "properties": {
+                          "protocol": "Tcp",
+                          "sourcePortRange": "*",
+                          "destinationPortRange": "80",
+                          "sourceAddressPrefix": "*",
+                          "destinationAddressPrefix": "*",
+                          "access": "Allow",
+                          "priority": 130,
+                          "direction": "Inbound"
+                        }
+                      },
+                      {
+                        "name": "AllowKubeAPIInbound",
+                        "properties": {
+                          "protocol": "Tcp",
+                          "sourcePortRange": "*",
+                          "destinationPortRange": "6443",
+                          "sourceAddressPrefix": "VirtualNetwork",
+                          "destinationAddressPrefix": "*",
+                          "access": "Allow",
+                          "priority": 140,
+                          "direction": "Inbound"
+                        }
+                      },
+                      {
+                        "name": "DenyAllOutbound",
+                        "properties": {
+                          "protocol": "*",
+                          "sourcePortRange": "*",
+                          "destinationPortRange": "*",
+                          "sourceAddressPrefix": "*",
+                          "destinationAddressPrefix": "*",
+                          "access": "Deny",
+                          "priority": 4096,
+                          "direction": "Outbound"
+                        }
+                      },
+                      {
+                        "name": "AllowHTTPSOutbound",
+                        "properties": {
+                          "protocol": "Tcp",
+                          "sourcePortRange": "*",
+                          "destinationPortRange": "443",
+                          "sourceAddressPrefix": "*",
+                          "destinationAddressPrefix": "Internet",
+                          "access": "Allow",
+                          "priority": 100,
+                          "direction": "Outbound"
+                        }
+                      },
+                      {
+                        "name": "AllowDNSOutbound",
+                        "properties": {
+                          "protocol": "Udp",
+                          "sourcePortRange": "*",
+                          "destinationPortRange": "53",
+                          "sourceAddressPrefix": "*",
+                          "destinationAddressPrefix": "Internet",
+                          "access": "Allow",
+                          "priority": 110,
+                          "direction": "Outbound"
+                        }
+                      },
+                      {
+                        "name": "AllowNTPOutbound",
+                        "properties": {
+                          "protocol": "Udp",
+                          "sourcePortRange": "*",
+                          "destinationPortRange": "123",
+                          "sourceAddressPrefix": "*",
+                          "destinationAddressPrefix": "Internet",
+                          "access": "Allow",
+                          "priority": 120,
+                          "direction": "Outbound"
+                        }
+                      },
+                      {
+                        "name": "AllowVNetOutbound",
+                        "properties": {
+                          "protocol": "*",
+                          "sourcePortRange": "*",
+                          "destinationPortRange": "*",
+                          "sourceAddressPrefix": "VirtualNetwork",
+                          "destinationAddressPrefix": "VirtualNetwork",
+                          "access": "Allow",
+                          "priority": 130,
+                          "direction": "Outbound"
+                        }
+                      }
+                    ]
+                  },
+                  "resources": [
+                    {
+                      "type": "Microsoft.Network/networkSecurityGroups",
+                      "apiVersion": "2023-04-01",
+                      "name": "[parameters('nsgName')]",
+                      "location": "[parameters('location')]",
+                      "tags": "[parameters('tags')]",
+                      "properties": {
+                        "securityRules": "[variables('nsgRules')]"
+                      }
+                    }
+                  ],
+                  "outputs": {
+                    "nsgId": {
+                      "type": "string",
+                      "value": "[resourceId('Microsoft.Network/networkSecurityGroups', parameters('nsgName'))]"
+                    },
+                    "nsgName": {
+                      "type": "string",
+                      "value": "[parameters('nsgName')]"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "type": "Microsoft.Resources/deployments",
+              "apiVersion": "2025-04-01",
+              "name": "nsg-appservice",
+              "properties": {
+                "expressionEvaluationOptions": {
+                  "scope": "inner"
+                },
+                "mode": "Incremental",
+                "parameters": {
+                  "nsgName": {
+                    "value": "[format('{0}-nsg-appservice', parameters('vnetName'))]"
+                  },
+                  "location": {
+                    "value": "[parameters('location')]"
+                  },
+                  "tags": {
+                    "value": "[parameters('tags')]"
+                  },
+                  "environment": {
+                    "value": "[parameters('environment')]"
+                  }
+                },
+                "template": {
+                  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                  "contentVersion": "1.0.0.0",
+                  "metadata": {
+                    "_generator": {
+                      "name": "bicep",
+                      "version": "0.42.1.51946",
+                      "templateHash": "5354299895719500154"
+                    }
+                  },
+                  "parameters": {
+                    "nsgName": {
+                      "type": "string"
+                    },
+                    "location": {
+                      "type": "string"
+                    },
+                    "tags": {
+                      "type": "object"
+                    },
+                    "environment": {
+                      "type": "string"
+                    }
+                  },
+                  "variables": {
+                    "nsgRules": [
+                      {
+                        "name": "DenyAllInbound",
+                        "properties": {
+                          "protocol": "*",
+                          "sourcePortRange": "*",
+                          "destinationPortRange": "*",
+                          "sourceAddressPrefix": "*",
+                          "destinationAddressPrefix": "*",
+                          "access": "Deny",
+                          "priority": 4096,
+                          "direction": "Inbound"
+                        }
+                      },
+                      {
+                        "name": "AllowRDPFromBastion",
+                        "properties": {
+                          "protocol": "Tcp",
+                          "sourcePortRange": "*",
+                          "destinationPortRange": "3389",
+                          "sourceAddressPrefix": "10.0.1.0/26",
+                          "destinationAddressPrefix": "*",
+                          "access": "Allow",
+                          "priority": 100,
+                          "direction": "Inbound"
+                        }
+                      },
+                      {
+                        "name": "AllowSSHFromBastion",
+                        "properties": {
+                          "protocol": "Tcp",
+                          "sourcePortRange": "*",
+                          "destinationPortRange": "22",
+                          "sourceAddressPrefix": "10.0.1.0/26",
+                          "destinationAddressPrefix": "*",
+                          "access": "Allow",
+                          "priority": 110,
+                          "direction": "Inbound"
+                        }
+                      },
+                      {
+                        "name": "AllowHTTPSInbound",
+                        "properties": {
+                          "protocol": "Tcp",
+                          "sourcePortRange": "*",
+                          "destinationPortRange": "443",
+                          "sourceAddressPrefix": "*",
+                          "destinationAddressPrefix": "*",
+                          "access": "Allow",
+                          "priority": 120,
+                          "direction": "Inbound"
+                        }
+                      },
+                      {
+                        "name": "AllowHTTPInbound",
+                        "properties": {
+                          "protocol": "Tcp",
+                          "sourcePortRange": "*",
+                          "destinationPortRange": "80",
+                          "sourceAddressPrefix": "*",
+                          "destinationAddressPrefix": "*",
+                          "access": "Allow",
+                          "priority": 130,
+                          "direction": "Inbound"
+                        }
+                      },
+                      {
+                        "name": "AllowKubeAPIInbound",
+                        "properties": {
+                          "protocol": "Tcp",
+                          "sourcePortRange": "*",
+                          "destinationPortRange": "6443",
+                          "sourceAddressPrefix": "VirtualNetwork",
+                          "destinationAddressPrefix": "*",
+                          "access": "Allow",
+                          "priority": 140,
+                          "direction": "Inbound"
+                        }
+                      },
+                      {
+                        "name": "DenyAllOutbound",
+                        "properties": {
+                          "protocol": "*",
+                          "sourcePortRange": "*",
+                          "destinationPortRange": "*",
+                          "sourceAddressPrefix": "*",
+                          "destinationAddressPrefix": "*",
+                          "access": "Deny",
+                          "priority": 4096,
+                          "direction": "Outbound"
+                        }
+                      },
+                      {
+                        "name": "AllowHTTPSOutbound",
+                        "properties": {
+                          "protocol": "Tcp",
+                          "sourcePortRange": "*",
+                          "destinationPortRange": "443",
+                          "sourceAddressPrefix": "*",
+                          "destinationAddressPrefix": "Internet",
+                          "access": "Allow",
+                          "priority": 100,
+                          "direction": "Outbound"
+                        }
+                      },
+                      {
+                        "name": "AllowDNSOutbound",
+                        "properties": {
+                          "protocol": "Udp",
+                          "sourcePortRange": "*",
+                          "destinationPortRange": "53",
+                          "sourceAddressPrefix": "*",
+                          "destinationAddressPrefix": "Internet",
+                          "access": "Allow",
+                          "priority": 110,
+                          "direction": "Outbound"
+                        }
+                      },
+                      {
+                        "name": "AllowNTPOutbound",
+                        "properties": {
+                          "protocol": "Udp",
+                          "sourcePortRange": "*",
+                          "destinationPortRange": "123",
+                          "sourceAddressPrefix": "*",
+                          "destinationAddressPrefix": "Internet",
+                          "access": "Allow",
+                          "priority": 120,
+                          "direction": "Outbound"
+                        }
+                      },
+                      {
+                        "name": "AllowVNetOutbound",
+                        "properties": {
+                          "protocol": "*",
+                          "sourcePortRange": "*",
+                          "destinationPortRange": "*",
+                          "sourceAddressPrefix": "VirtualNetwork",
+                          "destinationAddressPrefix": "VirtualNetwork",
+                          "access": "Allow",
+                          "priority": 130,
+                          "direction": "Outbound"
+                        }
+                      }
+                    ]
+                  },
+                  "resources": [
+                    {
+                      "type": "Microsoft.Network/networkSecurityGroups",
+                      "apiVersion": "2023-04-01",
+                      "name": "[parameters('nsgName')]",
+                      "location": "[parameters('location')]",
+                      "tags": "[parameters('tags')]",
+                      "properties": {
+                        "securityRules": "[variables('nsgRules')]"
+                      }
+                    }
+                  ],
+                  "outputs": {
+                    "nsgId": {
+                      "type": "string",
+                      "value": "[resourceId('Microsoft.Network/networkSecurityGroups', parameters('nsgName'))]"
+                    },
+                    "nsgName": {
+                      "type": "string",
+                      "value": "[parameters('nsgName')]"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "type": "Microsoft.Resources/deployments",
+              "apiVersion": "2025-04-01",
+              "name": "nsg-database",
+              "properties": {
+                "expressionEvaluationOptions": {
+                  "scope": "inner"
+                },
+                "mode": "Incremental",
+                "parameters": {
+                  "nsgName": {
+                    "value": "[format('{0}-nsg-database', parameters('vnetName'))]"
+                  },
+                  "location": {
+                    "value": "[parameters('location')]"
+                  },
+                  "tags": {
+                    "value": "[parameters('tags')]"
+                  },
+                  "environment": {
+                    "value": "[parameters('environment')]"
+                  }
+                },
+                "template": {
+                  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                  "contentVersion": "1.0.0.0",
+                  "metadata": {
+                    "_generator": {
+                      "name": "bicep",
+                      "version": "0.42.1.51946",
+                      "templateHash": "5354299895719500154"
+                    }
+                  },
+                  "parameters": {
+                    "nsgName": {
+                      "type": "string"
+                    },
+                    "location": {
+                      "type": "string"
+                    },
+                    "tags": {
+                      "type": "object"
+                    },
+                    "environment": {
+                      "type": "string"
+                    }
+                  },
+                  "variables": {
+                    "nsgRules": [
+                      {
+                        "name": "DenyAllInbound",
+                        "properties": {
+                          "protocol": "*",
+                          "sourcePortRange": "*",
+                          "destinationPortRange": "*",
+                          "sourceAddressPrefix": "*",
+                          "destinationAddressPrefix": "*",
+                          "access": "Deny",
+                          "priority": 4096,
+                          "direction": "Inbound"
+                        }
+                      },
+                      {
+                        "name": "AllowRDPFromBastion",
+                        "properties": {
+                          "protocol": "Tcp",
+                          "sourcePortRange": "*",
+                          "destinationPortRange": "3389",
+                          "sourceAddressPrefix": "10.0.1.0/26",
+                          "destinationAddressPrefix": "*",
+                          "access": "Allow",
+                          "priority": 100,
+                          "direction": "Inbound"
+                        }
+                      },
+                      {
+                        "name": "AllowSSHFromBastion",
+                        "properties": {
+                          "protocol": "Tcp",
+                          "sourcePortRange": "*",
+                          "destinationPortRange": "22",
+                          "sourceAddressPrefix": "10.0.1.0/26",
+                          "destinationAddressPrefix": "*",
+                          "access": "Allow",
+                          "priority": 110,
+                          "direction": "Inbound"
+                        }
+                      },
+                      {
+                        "name": "AllowHTTPSInbound",
+                        "properties": {
+                          "protocol": "Tcp",
+                          "sourcePortRange": "*",
+                          "destinationPortRange": "443",
+                          "sourceAddressPrefix": "*",
+                          "destinationAddressPrefix": "*",
+                          "access": "Allow",
+                          "priority": 120,
+                          "direction": "Inbound"
+                        }
+                      },
+                      {
+                        "name": "AllowHTTPInbound",
+                        "properties": {
+                          "protocol": "Tcp",
+                          "sourcePortRange": "*",
+                          "destinationPortRange": "80",
+                          "sourceAddressPrefix": "*",
+                          "destinationAddressPrefix": "*",
+                          "access": "Allow",
+                          "priority": 130,
+                          "direction": "Inbound"
+                        }
+                      },
+                      {
+                        "name": "AllowKubeAPIInbound",
+                        "properties": {
+                          "protocol": "Tcp",
+                          "sourcePortRange": "*",
+                          "destinationPortRange": "6443",
+                          "sourceAddressPrefix": "VirtualNetwork",
+                          "destinationAddressPrefix": "*",
+                          "access": "Allow",
+                          "priority": 140,
+                          "direction": "Inbound"
+                        }
+                      },
+                      {
+                        "name": "DenyAllOutbound",
+                        "properties": {
+                          "protocol": "*",
+                          "sourcePortRange": "*",
+                          "destinationPortRange": "*",
+                          "sourceAddressPrefix": "*",
+                          "destinationAddressPrefix": "*",
+                          "access": "Deny",
+                          "priority": 4096,
+                          "direction": "Outbound"
+                        }
+                      },
+                      {
+                        "name": "AllowHTTPSOutbound",
+                        "properties": {
+                          "protocol": "Tcp",
+                          "sourcePortRange": "*",
+                          "destinationPortRange": "443",
+                          "sourceAddressPrefix": "*",
+                          "destinationAddressPrefix": "Internet",
+                          "access": "Allow",
+                          "priority": 100,
+                          "direction": "Outbound"
+                        }
+                      },
+                      {
+                        "name": "AllowDNSOutbound",
+                        "properties": {
+                          "protocol": "Udp",
+                          "sourcePortRange": "*",
+                          "destinationPortRange": "53",
+                          "sourceAddressPrefix": "*",
+                          "destinationAddressPrefix": "Internet",
+                          "access": "Allow",
+                          "priority": 110,
+                          "direction": "Outbound"
+                        }
+                      },
+                      {
+                        "name": "AllowNTPOutbound",
+                        "properties": {
+                          "protocol": "Udp",
+                          "sourcePortRange": "*",
+                          "destinationPortRange": "123",
+                          "sourceAddressPrefix": "*",
+                          "destinationAddressPrefix": "Internet",
+                          "access": "Allow",
+                          "priority": 120,
+                          "direction": "Outbound"
+                        }
+                      },
+                      {
+                        "name": "AllowVNetOutbound",
+                        "properties": {
+                          "protocol": "*",
+                          "sourcePortRange": "*",
+                          "destinationPortRange": "*",
+                          "sourceAddressPrefix": "VirtualNetwork",
+                          "destinationAddressPrefix": "VirtualNetwork",
+                          "access": "Allow",
+                          "priority": 130,
+                          "direction": "Outbound"
+                        }
+                      }
+                    ]
+                  },
+                  "resources": [
+                    {
+                      "type": "Microsoft.Network/networkSecurityGroups",
+                      "apiVersion": "2023-04-01",
+                      "name": "[parameters('nsgName')]",
+                      "location": "[parameters('location')]",
+                      "tags": "[parameters('tags')]",
+                      "properties": {
+                        "securityRules": "[variables('nsgRules')]"
+                      }
+                    }
+                  ],
+                  "outputs": {
+                    "nsgId": {
+                      "type": "string",
+                      "value": "[resourceId('Microsoft.Network/networkSecurityGroups', parameters('nsgName'))]"
+                    },
+                    "nsgName": {
+                      "type": "string",
+                      "value": "[parameters('nsgName')]"
+                    }
+                  }
+                }
+              }
+            }
+          ],
+          "outputs": {
+            "vnetId": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.Resources/deployments', 'vnet-module'), '2025-04-01').outputs.vnetId.value]"
+            },
+            "vnetName": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.Resources/deployments', 'vnet-module'), '2025-04-01').outputs.vnetName.value]"
+            },
+            "managementSubnetId": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.Resources/deployments', 'vnet-module'), '2025-04-01').outputs.managementSubnetId.value]"
+            },
+            "aksSubnetId": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.Resources/deployments', 'vnet-module'), '2025-04-01').outputs.aksSubnetId.value]"
+            },
+            "appserviceSubnetId": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.Resources/deployments', 'vnet-module'), '2025-04-01').outputs.appserviceSubnetId.value]"
+            },
+            "databaseSubnetId": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.Resources/deployments', 'vnet-module'), '2025-04-01').outputs.databaseSubnetId.value]"
+            },
+            "bastionEnabled": {
+              "type": "bool",
+              "value": "[parameters('bastionEnabled')]"
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Resources/deployments', format('foundation-{0}', parameters('environment')))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "[format('storage-{0}', parameters('environment'))]",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "storageAccountName": {
+            "value": "[toLower(replace(format('{0}st', reference(resourceId('Microsoft.Resources/deployments', format('foundation-{0}', parameters('environment'))), '2025-04-01').outputs.namePrefix.value), '-', ''))]"
+          },
+          "acrName": {
+            "value": "[toLower(replace(format('{0}acr', reference(resourceId('Microsoft.Resources/deployments', format('foundation-{0}', parameters('environment'))), '2025-04-01').outputs.namePrefix.value), '-', ''))]"
+          },
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "tags": {
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', format('foundation-{0}', parameters('environment'))), '2025-04-01').outputs.commonTags.value]"
+          },
+          "accessTier": "[if(equals(parameters('environment'), 'prod'), createObject('value', 'Cool'), createObject('value', 'Hot'))]",
+          "acrSku": {
+            "value": "Basic"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.42.1.51946",
+              "templateHash": "14765471316272099725"
+            }
+          },
+          "parameters": {
+            "storageAccountName": {
+              "type": "string"
+            },
+            "acrName": {
+              "type": "string"
+            },
+            "location": {
+              "type": "string"
+            },
+            "tags": {
+              "type": "object"
+            },
+            "accessTier": {
+              "type": "string",
+              "defaultValue": "Hot",
+              "allowedValues": [
+                "Hot",
+                "Cool"
+              ]
+            },
+            "acrSku": {
+              "type": "string",
+              "defaultValue": "Basic",
+              "allowedValues": [
+                "Basic",
+                "Standard",
+                "Premium"
+              ]
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.Resources/deployments",
+              "apiVersion": "2025-04-01",
+              "name": "storage-account",
+              "properties": {
+                "expressionEvaluationOptions": {
+                  "scope": "inner"
+                },
+                "mode": "Incremental",
+                "parameters": {
+                  "storageAccountName": {
+                    "value": "[parameters('storageAccountName')]"
+                  },
+                  "location": {
+                    "value": "[parameters('location')]"
+                  },
+                  "tags": {
+                    "value": "[parameters('tags')]"
+                  },
+                  "accessTier": {
+                    "value": "[parameters('accessTier')]"
+                  }
+                },
+                "template": {
+                  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                  "contentVersion": "1.0.0.0",
+                  "metadata": {
+                    "_generator": {
+                      "name": "bicep",
+                      "version": "0.42.1.51946",
+                      "templateHash": "3389088019887969868"
+                    }
+                  },
+                  "parameters": {
+                    "storageAccountName": {
+                      "type": "string"
+                    },
+                    "location": {
+                      "type": "string"
+                    },
+                    "tags": {
+                      "type": "object"
+                    },
+                    "accessTier": {
+                      "type": "string",
+                      "defaultValue": "Hot",
+                      "allowedValues": [
+                        "Hot",
+                        "Cool"
+                      ]
+                    }
+                  },
+                  "resources": [
+                    {
+                      "type": "Microsoft.Storage/storageAccounts",
+                      "apiVersion": "2023-05-01",
+                      "name": "[parameters('storageAccountName')]",
+                      "location": "[parameters('location')]",
+                      "tags": "[parameters('tags')]",
+                      "sku": {
+                        "name": "Standard_LRS"
+                      },
+                      "kind": "StorageV2",
+                      "properties": {
+                        "accessTier": "[parameters('accessTier')]",
+                        "minimumTlsVersion": "TLS1_2",
+                        "supportsHttpsTrafficOnly": true,
+                        "allowBlobPublicAccess": false,
+                        "allowSharedKeyAccess": false,
+                        "defaultToOAuthAuthentication": true,
+                        "allowCrossTenantReplication": false,
+                        "publicNetworkAccess": "Enabled",
+                        "networkAcls": {
+                          "bypass": "AzureServices",
+                          "defaultAction": "Allow"
+                        },
+                        "encryption": {
+                          "keySource": "Microsoft.Storage",
+                          "services": {
+                            "blob": {
+                              "enabled": true
+                            },
+                            "file": {
+                              "enabled": true
+                            },
+                            "queue": {
+                              "enabled": true
+                            },
+                            "table": {
+                              "enabled": true
+                            }
+                          }
+                        }
+                      }
+                    }
+                  ],
+                  "outputs": {
+                    "storageAccountId": {
+                      "type": "string",
+                      "value": "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName'))]"
+                    },
+                    "storageAccountName": {
+                      "type": "string",
+                      "value": "[parameters('storageAccountName')]"
+                    },
+                    "primaryBlobEndpoint": {
+                      "type": "string",
+                      "value": "[reference(resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName')), '2023-05-01').primaryEndpoints.blob]"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "type": "Microsoft.Resources/deployments",
+              "apiVersion": "2025-04-01",
+              "name": "container-registry",
+              "properties": {
+                "expressionEvaluationOptions": {
+                  "scope": "inner"
+                },
+                "mode": "Incremental",
+                "parameters": {
+                  "acrName": {
+                    "value": "[parameters('acrName')]"
+                  },
+                  "location": {
+                    "value": "[parameters('location')]"
+                  },
+                  "tags": {
+                    "value": "[parameters('tags')]"
+                  },
+                  "acrSku": {
+                    "value": "[parameters('acrSku')]"
+                  }
+                },
+                "template": {
+                  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                  "contentVersion": "1.0.0.0",
+                  "metadata": {
+                    "_generator": {
+                      "name": "bicep",
+                      "version": "0.42.1.51946",
+                      "templateHash": "16028345474887135809"
+                    }
+                  },
+                  "parameters": {
+                    "acrName": {
+                      "type": "string"
+                    },
+                    "location": {
+                      "type": "string"
+                    },
+                    "tags": {
+                      "type": "object"
+                    },
+                    "acrSku": {
+                      "type": "string",
+                      "defaultValue": "Basic",
+                      "allowedValues": [
+                        "Basic",
+                        "Standard",
+                        "Premium"
+                      ]
+                    }
+                  },
+                  "resources": [
+                    {
+                      "type": "Microsoft.ContainerRegistry/registries",
+                      "apiVersion": "2023-07-01",
+                      "name": "[parameters('acrName')]",
+                      "location": "[parameters('location')]",
+                      "tags": "[parameters('tags')]",
+                      "sku": {
+                        "name": "[parameters('acrSku')]"
+                      },
+                      "properties": {
+                        "adminUserEnabled": false,
+                        "anonymousPullEnabled": false,
+                        "publicNetworkAccess": "Enabled",
+                        "dataEndpointEnabled": false
+                      }
+                    }
+                  ],
+                  "outputs": {
+                    "acrId": {
+                      "type": "string",
+                      "value": "[resourceId('Microsoft.ContainerRegistry/registries', parameters('acrName'))]"
+                    },
+                    "acrName": {
+                      "type": "string",
+                      "value": "[parameters('acrName')]"
+                    },
+                    "loginServer": {
+                      "type": "string",
+                      "value": "[reference(resourceId('Microsoft.ContainerRegistry/registries', parameters('acrName')), '2023-07-01').loginServer]"
+                    }
+                  }
+                }
+              }
+            }
+          ],
+          "outputs": {
+            "storageAccountId": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.Resources/deployments', 'storage-account'), '2025-04-01').outputs.storageAccountId.value]"
+            },
+            "storageAccountName": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.Resources/deployments', 'storage-account'), '2025-04-01').outputs.storageAccountName.value]"
+            },
+            "primaryBlobEndpoint": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.Resources/deployments', 'storage-account'), '2025-04-01').outputs.primaryBlobEndpoint.value]"
+            },
+            "acrId": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.Resources/deployments', 'container-registry'), '2025-04-01').outputs.acrId.value]"
+            },
+            "acrName": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.Resources/deployments', 'container-registry'), '2025-04-01').outputs.acrName.value]"
+            },
+            "acrLoginServer": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.Resources/deployments', 'container-registry'), '2025-04-01').outputs.loginServer.value]"
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Resources/deployments', format('foundation-{0}', parameters('environment')))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "[format('monitoring-{0}', parameters('environment'))]",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "environment": {
+            "value": "[parameters('environment')]"
+          },
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "tags": {
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', format('foundation-{0}', parameters('environment'))), '2025-04-01').outputs.commonTags.value]"
+          },
+          "prefix": {
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', format('foundation-{0}', parameters('environment'))), '2025-04-01').outputs.namePrefix.value]"
+          },
+          "alertEmail": {
+            "value": "[parameters('alertEmail')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.42.1.51946",
+              "templateHash": "2319878957831198992"
+            }
+          },
+          "parameters": {
+            "environment": {
+              "type": "string"
+            },
+            "location": {
+              "type": "string"
+            },
+            "tags": {
+              "type": "object"
+            },
+            "prefix": {
+              "type": "string"
+            },
+            "alertEmail": {
+              "type": "string"
+            }
+          },
+          "variables": {
+            "retentionInDays": "[if(equals(parameters('environment'), 'prod'), 90, 30)]",
+            "workspaceName": "[toLower(replace(format('{0}-{1}-law', parameters('prefix'), parameters('environment')), '-', ''))]",
+            "appInsightsName": "[format('{0}-{1}-appi', parameters('prefix'), parameters('environment'))]",
+            "actionGroupName": "[format('{0}-{1}-ag', parameters('prefix'), parameters('environment'))]",
+            "actionGroupShort": "[take(toLower(replace(format('{0}{1}', parameters('prefix'), parameters('environment')), '-', '')), 12)]"
+          },
+          "resources": [
+            {
+              "type": "Microsoft.Resources/deployments",
+              "apiVersion": "2025-04-01",
+              "name": "[format('law-{0}', parameters('environment'))]",
+              "properties": {
+                "expressionEvaluationOptions": {
+                  "scope": "inner"
+                },
+                "mode": "Incremental",
+                "parameters": {
+                  "workspaceName": {
+                    "value": "[variables('workspaceName')]"
+                  },
+                  "location": {
+                    "value": "[parameters('location')]"
+                  },
+                  "tags": {
+                    "value": "[parameters('tags')]"
+                  },
+                  "retentionInDays": {
+                    "value": "[variables('retentionInDays')]"
+                  }
+                },
+                "template": {
+                  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                  "contentVersion": "1.0.0.0",
+                  "metadata": {
+                    "_generator": {
+                      "name": "bicep",
+                      "version": "0.42.1.51946",
+                      "templateHash": "7152146057014615205"
+                    }
+                  },
+                  "parameters": {
+                    "workspaceName": {
+                      "type": "string"
+                    },
+                    "location": {
+                      "type": "string"
+                    },
+                    "tags": {
+                      "type": "object"
+                    },
+                    "retentionInDays": {
+                      "type": "int",
+                      "defaultValue": 30
+                    }
+                  },
+                  "resources": [
+                    {
+                      "type": "Microsoft.OperationalInsights/workspaces",
+                      "apiVersion": "2023-09-01",
+                      "name": "[parameters('workspaceName')]",
+                      "location": "[parameters('location')]",
+                      "tags": "[parameters('tags')]",
+                      "properties": {
+                        "sku": {
+                          "name": "PerGB2018"
+                        },
+                        "retentionInDays": "[parameters('retentionInDays')]",
+                        "publicNetworkAccessForIngestion": "Enabled",
+                        "publicNetworkAccessForQuery": "Enabled"
+                      }
+                    }
+                  ],
+                  "outputs": {
+                    "workspaceId": {
+                      "type": "string",
+                      "value": "[resourceId('Microsoft.OperationalInsights/workspaces', parameters('workspaceName'))]"
+                    },
+                    "workspaceName": {
+                      "type": "string",
+                      "value": "[parameters('workspaceName')]"
+                    },
+                    "customerId": {
+                      "type": "string",
+                      "value": "[reference(resourceId('Microsoft.OperationalInsights/workspaces', parameters('workspaceName')), '2023-09-01').customerId]"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "type": "Microsoft.Resources/deployments",
+              "apiVersion": "2025-04-01",
+              "name": "[format('appi-{0}', parameters('environment'))]",
+              "properties": {
+                "expressionEvaluationOptions": {
+                  "scope": "inner"
+                },
+                "mode": "Incremental",
+                "parameters": {
+                  "appInsightsName": {
+                    "value": "[variables('appInsightsName')]"
+                  },
+                  "location": {
+                    "value": "[parameters('location')]"
+                  },
+                  "tags": {
+                    "value": "[parameters('tags')]"
+                  },
+                  "workspaceResourceId": {
+                    "value": "[reference(resourceId('Microsoft.Resources/deployments', format('law-{0}', parameters('environment'))), '2025-04-01').outputs.workspaceId.value]"
+                  }
+                },
+                "template": {
+                  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                  "contentVersion": "1.0.0.0",
+                  "metadata": {
+                    "_generator": {
+                      "name": "bicep",
+                      "version": "0.42.1.51946",
+                      "templateHash": "18312256706918466452"
+                    }
+                  },
+                  "parameters": {
+                    "appInsightsName": {
+                      "type": "string"
+                    },
+                    "location": {
+                      "type": "string"
+                    },
+                    "tags": {
+                      "type": "object"
+                    },
+                    "workspaceResourceId": {
+                      "type": "string"
+                    }
+                  },
+                  "resources": [
+                    {
+                      "type": "Microsoft.Insights/components",
+                      "apiVersion": "2023-06-01",
+                      "name": "[parameters('appInsightsName')]",
+                      "location": "[parameters('location')]",
+                      "tags": "[parameters('tags')]",
+                      "kind": "web",
+                      "properties": {
+                        "Application_Type": "web",
+                        "WorkspaceResourceId": "[parameters('workspaceResourceId')]",
+                        "IngestionMode": "LogAnalytics",
+                        "publicNetworkAccessForIngestion": "Enabled",
+                        "publicNetworkAccessForQuery": "Enabled"
+                      }
+                    }
+                  ],
+                  "outputs": {
+                    "appInsightsId": {
+                      "type": "string",
+                      "value": "[resourceId('Microsoft.Insights/components', parameters('appInsightsName'))]"
+                    },
+                    "appInsightsName": {
+                      "type": "string",
+                      "value": "[parameters('appInsightsName')]"
+                    },
+                    "connectionString": {
+                      "type": "string",
+                      "value": "[reference(resourceId('Microsoft.Insights/components', parameters('appInsightsName')), '2023-06-01').ConnectionString]"
+                    }
+                  }
+                }
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Resources/deployments', format('law-{0}', parameters('environment')))]"
+              ]
+            },
+            {
+              "type": "Microsoft.Resources/deployments",
+              "apiVersion": "2025-04-01",
+              "name": "[format('ag-{0}', parameters('environment'))]",
+              "properties": {
+                "expressionEvaluationOptions": {
+                  "scope": "inner"
+                },
+                "mode": "Incremental",
+                "parameters": {
+                  "actionGroupName": {
+                    "value": "[variables('actionGroupName')]"
+                  },
+                  "location": {
+                    "value": "global"
+                  },
+                  "tags": {
+                    "value": "[parameters('tags')]"
+                  },
+                  "shortName": {
+                    "value": "[variables('actionGroupShort')]"
+                  },
+                  "alertEmail": {
+                    "value": "[parameters('alertEmail')]"
+                  }
+                },
+                "template": {
+                  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                  "contentVersion": "1.0.0.0",
+                  "metadata": {
+                    "_generator": {
+                      "name": "bicep",
+                      "version": "0.42.1.51946",
+                      "templateHash": "10991461434920837557"
+                    }
+                  },
+                  "parameters": {
+                    "actionGroupName": {
+                      "type": "string"
+                    },
+                    "location": {
+                      "type": "string"
+                    },
+                    "tags": {
+                      "type": "object"
+                    },
+                    "shortName": {
+                      "type": "string"
+                    },
+                    "alertEmail": {
+                      "type": "string"
+                    }
+                  },
+                  "resources": [
+                    {
+                      "type": "Microsoft.Insights/actionGroups",
+                      "apiVersion": "2023-01-01",
+                      "name": "[parameters('actionGroupName')]",
+                      "location": "[parameters('location')]",
+                      "tags": "[parameters('tags')]",
+                      "properties": {
+                        "groupShortName": "[parameters('shortName')]",
+                        "enabled": true,
+                        "emailReceivers": [
+                          {
+                            "name": "primaryEmail",
+                            "emailAddress": "[parameters('alertEmail')]",
+                            "useCommonAlertSchema": true
+                          }
+                        ]
+                      }
+                    }
+                  ],
+                  "outputs": {
+                    "actionGroupId": {
+                      "type": "string",
+                      "value": "[resourceId('Microsoft.Insights/actionGroups', parameters('actionGroupName'))]"
+                    },
+                    "actionGroupName": {
+                      "type": "string",
+                      "value": "[parameters('actionGroupName')]"
+                    }
+                  }
+                }
+              }
+            }
+          ],
+          "outputs": {
+            "workspaceId": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.Resources/deployments', format('law-{0}', parameters('environment'))), '2025-04-01').outputs.workspaceId.value]"
+            },
+            "workspaceName": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.Resources/deployments', format('law-{0}', parameters('environment'))), '2025-04-01').outputs.workspaceName.value]"
+            },
+            "workspaceCustomerId": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.Resources/deployments', format('law-{0}', parameters('environment'))), '2025-04-01').outputs.customerId.value]"
+            },
+            "appInsightsId": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.Resources/deployments', format('appi-{0}', parameters('environment'))), '2025-04-01').outputs.appInsightsId.value]"
+            },
+            "appInsightsName": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.Resources/deployments', format('appi-{0}', parameters('environment'))), '2025-04-01').outputs.appInsightsName.value]"
+            },
+            "appInsightsConnectionString": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.Resources/deployments', format('appi-{0}', parameters('environment'))), '2025-04-01').outputs.connectionString.value]"
+            },
+            "actionGroupId": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.Resources/deployments', format('ag-{0}', parameters('environment'))), '2025-04-01').outputs.actionGroupId.value]"
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Resources/deployments', format('foundation-{0}', parameters('environment')))]"
+      ]
     }
   ],
   "outputs": {
@@ -145,6 +1909,34 @@
     "namePrefix": {
       "type": "string",
       "value": "[reference(resourceId('Microsoft.Resources/deployments', format('foundation-{0}', parameters('environment'))), '2025-04-01').outputs.namePrefix.value]"
+    },
+    "vnetId": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', format('network-{0}', parameters('environment'))), '2025-04-01').outputs.vnetId.value]"
+    },
+    "storageAccountId": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', format('storage-{0}', parameters('environment'))), '2025-04-01').outputs.storageAccountId.value]"
+    },
+    "acrId": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', format('storage-{0}', parameters('environment'))), '2025-04-01').outputs.acrId.value]"
+    },
+    "acrLoginServer": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', format('storage-{0}', parameters('environment'))), '2025-04-01').outputs.acrLoginServer.value]"
+    },
+    "logAnalyticsWorkspaceId": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', format('monitoring-{0}', parameters('environment'))), '2025-04-01').outputs.workspaceId.value]"
+    },
+    "appInsightsId": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', format('monitoring-{0}', parameters('environment'))), '2025-04-01').outputs.appInsightsId.value]"
+    },
+    "actionGroupId": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', format('monitoring-{0}', parameters('environment'))), '2025-04-01').outputs.actionGroupId.value]"
     }
   }
 }
