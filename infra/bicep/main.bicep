@@ -25,7 +25,6 @@ module foundation './modules/foundation/main.bicep' = {
   }
 }
 
-
 module network './modules/network/main.bicep' = {
   name: 'network-${environment}'
   params: {
@@ -40,7 +39,25 @@ module network './modules/network/main.bicep' = {
     foundation
   ]
 }
+
+module storage './modules/storage/main.bicep' = {
+  name: 'storage-${environment}'
+  params: {
+    storageAccountName: toLower(replace('${foundation.outputs.namePrefix}st', '-', ''))
+    acrName: toLower(replace('${foundation.outputs.namePrefix}acr', '-', ''))
+    location: location
+    tags: foundation.outputs.commonTags
+    accessTier: (environment == 'prod' ? 'Cool' : 'Hot')
+    acrSku: 'Basic'
+  }
+  dependsOn: [
+    foundation
+  ]
+}
+
 output commonTags object = foundation.outputs.commonTags
 output namePrefix string = foundation.outputs.namePrefix
-
-
+output vnetId string = network.outputs.vnetId
+output storageAccountId string = storage.outputs.storageAccountId
+output acrId string = storage.outputs.acrId
+output acrLoginServer string = storage.outputs.acrLoginServer
