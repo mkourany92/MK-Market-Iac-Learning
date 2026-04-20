@@ -1,4 +1,4 @@
-﻿// Self-Hosted Agent VM Module
+// Self-Hosted Agent VM Module
 // WHY only for dev/test: eliminates agent cost in prod
 // WHY B2s: burstable, cheap, good for build workloads
 // WHY auto-shutdown at 19:00: saves approx 50% daily cost
@@ -10,7 +10,7 @@ param location string
 param tags object
 param subnetId string
 param adminUsername string = 'azuredevops'
-param vmSize string = 'Standard_B2s'
+param vmSize string = 'Standard_DS2_v2'
 param keyVaultName string
 
 resource agentNic 'Microsoft.Network/networkInterfaces@2023-09-01' = {

@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.42.1.51946",
-      "templateHash": "14129829325563152758"
+      "templateHash": "16534398335590754880"
     }
   },
   "parameters": {
@@ -39,11 +39,15 @@
     "keyVaultName": {
       "type": "string"
     },
+    "deployAgentVm": {
+      "type": "bool",
+      "defaultValue": "[not(equals(parameters('environment'), 'prod'))]"
+    },
     "vmSize": {
       "type": "string",
-      "defaultValue": "Standard_B2s",
+      "defaultValue": "Standard_DS2_v2",
       "allowedValues": [
-        "Standard_B2s",
+        "Standard_DS2_v2",
         "Standard_D2s_v3"
       ]
     }
@@ -52,7 +56,7 @@
     "aksNodeCount": "[if(equals(parameters('environment'), 'prod'), 2, 1)]",
     "aksMinNodes": "[if(equals(parameters('environment'), 'prod'), 2, 1)]",
     "aksMaxNodes": "[if(equals(parameters('environment'), 'prod'), 5, 3)]",
-    "aksVmSize": "[if(equals(parameters('environment'), 'prod'), 'Standard_D2s_v3', 'Standard_B4ms')]"
+    "aksVmSize": "[if(equals(parameters('environment'), 'prod'), 'Standard_D2s_v3', 'Standard_DS2_v2')]"
   },
   "resources": [
     {
@@ -359,7 +363,7 @@
       }
     },
     {
-      "condition": "[not(equals(parameters('environment'), 'prod'))]",
+      "condition": "[parameters('deployAgentVm')]",
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2025-04-01",
       "name": "[format('agent-vm-{0}', parameters('environment'))]",
@@ -395,7 +399,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.42.1.51946",
-              "templateHash": "8741316995760959362"
+              "templateHash": "9933802999990571853"
             }
           },
           "parameters": {
@@ -417,7 +421,7 @@
             },
             "vmSize": {
               "type": "string",
-              "defaultValue": "Standard_B2s"
+              "defaultValue": "Standard_DS2_v2"
             },
             "keyVaultName": {
               "type": "string"
@@ -574,11 +578,11 @@
     },
     "agentVmId": {
       "type": "string",
-      "value": "[if(not(equals(parameters('environment'), 'prod')), reference(resourceId('Microsoft.Resources/deployments', format('agent-vm-{0}', parameters('environment'))), '2025-04-01').outputs.agentVmId.value, '')]"
+      "value": "[if(parameters('deployAgentVm'), reference(resourceId('Microsoft.Resources/deployments', format('agent-vm-{0}', parameters('environment'))), '2025-04-01').outputs.agentVmId.value, '')]"
     },
     "agentVmPrincipalId": {
       "type": "string",
-      "value": "[if(not(equals(parameters('environment'), 'prod')), reference(resourceId('Microsoft.Resources/deployments', format('agent-vm-{0}', parameters('environment'))), '2025-04-01').outputs.agentVmPrincipalId.value, '')]"
+      "value": "[if(parameters('deployAgentVm'), reference(resourceId('Microsoft.Resources/deployments', format('agent-vm-{0}', parameters('environment'))), '2025-04-01').outputs.agentVmPrincipalId.value, '')]"
     }
   }
 }

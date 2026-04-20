@@ -13,6 +13,8 @@ param prefix string = 'mkmarket'
 param owner string = 'mkmarket-owner'
 param costCenter string = 'mkmarket-lab'
 param alertEmail string = 'replace-me@example.com'
+param deployCompute bool = false
+param deployAgentVm bool = environment != 'prod'
 
 module foundation './modules/foundation/main.bicep' = {
   name: 'foundation-${environment}'
@@ -64,7 +66,7 @@ module monitoring './modules/monitoring/main.bicep' = {
   dependsOn: [ foundation ]
 }
 
-module compute './modules/compute/main.bicep' = {
+module compute './modules/compute/main.bicep' = if (deployCompute) {
   name: 'compute-${environment}'
   params: {
     environment: environment
@@ -77,10 +79,10 @@ module compute './modules/compute/main.bicep' = {
     logAnalyticsWorkspaceId: monitoring.outputs.workspaceId
     appInsightsConnectionString: monitoring.outputs.appInsightsConnectionString
     keyVaultName: '${foundation.outputs.namePrefix}-kv'
+    deployAgentVm: deployAgentVm
   }
   dependsOn: [ network, storage, monitoring ]
 }
-
 output commonTags object = foundation.outputs.commonTags
 output namePrefix string = foundation.outputs.namePrefix
 output vnetId string = network.outputs.vnetId
@@ -90,7 +92,7 @@ output acrLoginServer string = storage.outputs.acrLoginServer
 output logAnalyticsWorkspaceId string = monitoring.outputs.workspaceId
 output appInsightsId string = monitoring.outputs.appInsightsId
 output actionGroupId string = monitoring.outputs.actionGroupId
-output aksClusterId string = compute.outputs.aksClusterId
-output aksClusterName string = compute.outputs.aksClusterName
-output appServiceId string = compute.outputs.appServiceId
-output agentVmId string = compute.outputs.agentVmId
+output aksClusterId string = deployCompute ? compute.outputs.aksClusterId : ''
+output aksClusterName string = deployCompute ? compute.outputs.aksClusterName : ''
+output appServiceId string = deployCompute ? compute.outputs.appServiceId : ''
+output agentVmId string = deployCompute ? compute.outputs.agentVmId : ''

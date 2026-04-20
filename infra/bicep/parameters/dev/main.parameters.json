@@ -21,7 +21,13 @@
       "value": "mkmarket-lab"
     },
     "alertEmail": {
-      "value": "replace-me@example.com"
+      "value": "mkourany@techopsco.com"
+    },
+    "deployAgentVm": {
+      "value": false
+    },
+    "deployCompute": {
+      "value": false
     }
   }
 }

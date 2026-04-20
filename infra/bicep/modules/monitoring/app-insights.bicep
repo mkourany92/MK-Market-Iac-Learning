@@ -3,7 +3,7 @@ param location string
 param tags object
 param workspaceResourceId string
 
-resource appInsights 'Microsoft.Insights/components@2023-06-01' = {
+resource appInsights 'Microsoft.Insights/components@2020-02-02' = {
   name: appInsightsName
   location: location
   tags: tags
