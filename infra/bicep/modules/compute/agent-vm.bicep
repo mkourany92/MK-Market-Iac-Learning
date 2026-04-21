@@ -11,7 +11,8 @@ param tags object
 param subnetId string
 param adminUsername string = 'azuredevops'
 param vmSize string = 'Standard_DS2_v2'
-param keyVaultName string
+@secure()
+param adminPassword string
 
 resource agentNic 'Microsoft.Network/networkInterfaces@2023-09-01' = {
   name: '${vmName}-nic'
@@ -23,7 +24,7 @@ resource agentNic 'Microsoft.Network/networkInterfaces@2023-09-01' = {
         name: 'ipconfig1'
         properties: {
           subnet: {
-            id: subnetId  // WHY: Placed in management subnet, private, no public facing
+            id: subnetId // WHY: Placed in management subnet, private, no public facing
           }
           privateIPAllocationMethod: 'Dynamic'
           // WHY no publicIPAddress: Agents push to Azure DevOps over HTTPS outbound only
@@ -47,6 +48,13 @@ resource agentVm 'Microsoft.Compute/virtualMachines@2024-03-01' = {
     hardwareProfile: {
       vmSize: vmSize
     }
+    securityProfile: {
+      securityType: 'ConfidentialVM'
+      uefiSettings: {
+        secureBootEnabled: true
+        vTpmEnabled: true
+      }
+    }
     storageProfile: {
       imageReference: {
         publisher: 'MicrosoftWindowsServer'
@@ -59,14 +67,18 @@ resource agentVm 'Microsoft.Compute/virtualMachines@2024-03-01' = {
         managedDisk: {
           storageAccountType: 'Premium_LRS'
           // WHY Premium_LRS: faster IOPS = faster build times
+          securityProfile: {
+            securityEncryptionType: 'VMGuestStateOnly' // ← ADD THIS
+            // WHY: Required for ConfidentialVM security type — encrypts VM guest state
+          }
         }
         diskSizeGB: 128
       }
     }
     osProfile: {
-      computerName: vmName
+      computerName: take(vmName, 15) // WHY: Windows limit is 15 chars; vmName can exceed that
       adminUsername: adminUsername
-      adminPassword: '${keyVaultName}'
+      adminPassword: adminPassword
       // NOTE: adminPassword is placeholder - real password set in Key Vault
       // Actual bootstrap uses DSC module to configure and uses KV secret
     }
@@ -95,7 +107,7 @@ resource autoShutdown 'Microsoft.DevTestLab/schedules@2018-09-15' = {
     status: 'Enabled'
     taskType: 'ComputeVmShutdownTask'
     dailyRecurrence: {
-      time: '1900'   // WHY 19:00: End of business hours, agents not needed overnight
+      time: '1900' // WHY 19:00: End of business hours, agents not needed overnight
     }
     timeZoneId: 'UTC'
     targetResourceId: agentVm.id

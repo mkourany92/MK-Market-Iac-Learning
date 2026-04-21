@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.42.1.51946",
-      "templateHash": "12909611697076689144"
+      "templateHash": "11934769649239789677"
     }
   },
   "parameters": {
@@ -49,6 +49,30 @@
     "deployAgentVm": {
       "type": "bool",
       "defaultValue": "[not(equals(parameters('environment'), 'prod'))]"
+    },
+    "adminPassword": {
+      "type": "securestring",
+      "defaultValue": ""
+    },
+    "deployAks": {
+      "type": "bool",
+      "defaultValue": true
+    },
+    "deployAppService": {
+      "type": "bool",
+      "defaultValue": true
+    },
+    "aksNodeVmSize": {
+      "type": "string",
+      "defaultValue": "Standard_DC2as_v5"
+    },
+    "agentVmSize": {
+      "type": "string",
+      "defaultValue": "Standard_DC2as_v5"
+    },
+    "computeLocation": {
+      "type": "string",
+      "defaultValue": "[parameters('location')]"
     }
   },
   "resources": [
@@ -1923,7 +1947,7 @@
             "value": "[parameters('environment')]"
           },
           "location": {
-            "value": "[parameters('location')]"
+            "value": "[parameters('computeLocation')]"
           },
           "tags": {
             "value": "[reference(resourceId('Microsoft.Resources/deployments', format('foundation-{0}', parameters('environment'))), '2025-04-01').outputs.commonTags.value]"
@@ -1946,11 +1970,23 @@
           "appInsightsConnectionString": {
             "value": "[reference(resourceId('Microsoft.Resources/deployments', format('monitoring-{0}', parameters('environment'))), '2025-04-01').outputs.appInsightsConnectionString.value]"
           },
-          "keyVaultName": {
-            "value": "[format('{0}-kv', reference(resourceId('Microsoft.Resources/deployments', format('foundation-{0}', parameters('environment'))), '2025-04-01').outputs.namePrefix.value)]"
+          "adminPassword": {
+            "value": "[parameters('adminPassword')]"
           },
           "deployAgentVm": {
             "value": "[parameters('deployAgentVm')]"
+          },
+          "deployAks": {
+            "value": "[parameters('deployAks')]"
+          },
+          "deployAppService": {
+            "value": "[parameters('deployAppService')]"
+          },
+          "aksNodeVmSize": {
+            "value": "[parameters('aksNodeVmSize')]"
+          },
+          "agentVmSize": {
+            "value": "[parameters('agentVmSize')]"
           }
         },
         "template": {
@@ -1960,7 +1996,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.42.1.51946",
-              "templateHash": "16534398335590754880"
+              "templateHash": "16175807092066623446"
             }
           },
           "parameters": {
@@ -1991,30 +2027,39 @@
             "appInsightsConnectionString": {
               "type": "string"
             },
-            "keyVaultName": {
-              "type": "string"
+            "adminPassword": {
+              "type": "securestring",
+              "defaultValue": ""
             },
             "deployAgentVm": {
               "type": "bool",
               "defaultValue": "[not(equals(parameters('environment'), 'prod'))]"
             },
-            "vmSize": {
+            "aksNodeVmSize": {
               "type": "string",
-              "defaultValue": "Standard_DS2_v2",
-              "allowedValues": [
-                "Standard_DS2_v2",
-                "Standard_D2s_v3"
-              ]
+              "defaultValue": "Standard_DC2as_v5"
+            },
+            "agentVmSize": {
+              "type": "string",
+              "defaultValue": "Standard_DC2as_v5"
+            },
+            "deployAks": {
+              "type": "bool",
+              "defaultValue": true
+            },
+            "deployAppService": {
+              "type": "bool",
+              "defaultValue": true
             }
           },
           "variables": {
             "aksNodeCount": "[if(equals(parameters('environment'), 'prod'), 2, 1)]",
             "aksMinNodes": "[if(equals(parameters('environment'), 'prod'), 2, 1)]",
-            "aksMaxNodes": "[if(equals(parameters('environment'), 'prod'), 5, 3)]",
-            "aksVmSize": "[if(equals(parameters('environment'), 'prod'), 'Standard_D2s_v3', 'Standard_DS2_v2')]"
+            "aksMaxNodes": "[if(equals(parameters('environment'), 'prod'), 5, 3)]"
           },
           "resources": [
             {
+              "condition": "[parameters('deployAks')]",
               "type": "Microsoft.Resources/deployments",
               "apiVersion": "2025-04-01",
               "name": "[format('aks-{0}', parameters('environment'))]",
@@ -2049,7 +2094,7 @@
                     "value": "[variables('aksMaxNodes')]"
                   },
                   "vmSize": {
-                    "value": "[variables('aksVmSize')]"
+                    "value": "[parameters('aksNodeVmSize')]"
                   }
                 },
                 "template": {
@@ -2177,6 +2222,7 @@
               }
             },
             {
+              "condition": "[parameters('deployAppService')]",
               "type": "Microsoft.Resources/deployments",
               "apiVersion": "2025-04-01",
               "name": "[format('app-{0}', parameters('environment'))]",
@@ -2215,7 +2261,7 @@
                     "_generator": {
                       "name": "bicep",
                       "version": "0.42.1.51946",
-                      "templateHash": "13417502360881600983"
+                      "templateHash": "13241087515787003642"
                     }
                   },
                   "parameters": {
@@ -2242,7 +2288,7 @@
                     }
                   },
                   "variables": {
-                    "planSku": "[if(equals(parameters('environment'), 'prod'), createObject('name', 'P1v2', 'tier', 'PremiumV2', 'capacity', 1), createObject('name', 'B1', 'tier', 'Basic', 'capacity', 1))]"
+                    "planSku": "[if(equals(parameters('environment'), 'prod'), createObject('name', 'P1v2', 'tier', 'PremiumV2', 'capacity', 1), createObject('name', 'S1', 'tier', 'Standard', 'capacity', 1))]"
                   },
                   "resources": [
                     {
@@ -2341,10 +2387,10 @@
                     "value": "[parameters('managementSubnetId')]"
                   },
                   "vmSize": {
-                    "value": "[parameters('vmSize')]"
+                    "value": "[parameters('agentVmSize')]"
                   },
-                  "keyVaultName": {
-                    "value": "[parameters('keyVaultName')]"
+                  "adminPassword": {
+                    "value": "[parameters('adminPassword')]"
                   }
                 },
                 "template": {
@@ -2354,7 +2400,7 @@
                     "_generator": {
                       "name": "bicep",
                       "version": "0.42.1.51946",
-                      "templateHash": "9933802999990571853"
+                      "templateHash": "837233754351906574"
                     }
                   },
                   "parameters": {
@@ -2378,8 +2424,8 @@
                       "type": "string",
                       "defaultValue": "Standard_DS2_v2"
                     },
-                    "keyVaultName": {
-                      "type": "string"
+                    "adminPassword": {
+                      "type": "securestring"
                     }
                   },
                   "resources": [
@@ -2434,7 +2480,7 @@
                         "osProfile": {
                           "computerName": "[parameters('vmName')]",
                           "adminUsername": "[parameters('adminUsername')]",
-                          "adminPassword": "[format('{0}', parameters('keyVaultName'))]"
+                          "adminPassword": "[parameters('adminPassword')]"
                         },
                         "networkProfile": {
                           "networkInterfaces": [
@@ -2501,35 +2547,35 @@
           "outputs": {
             "aksClusterId": {
               "type": "string",
-              "value": "[reference(resourceId('Microsoft.Resources/deployments', format('aks-{0}', parameters('environment'))), '2025-04-01').outputs.aksClusterId.value]"
+              "value": "[if(parameters('deployAks'), reference(resourceId('Microsoft.Resources/deployments', format('aks-{0}', parameters('environment'))), '2025-04-01').outputs.aksClusterId.value, '')]"
             },
             "aksClusterName": {
               "type": "string",
-              "value": "[reference(resourceId('Microsoft.Resources/deployments', format('aks-{0}', parameters('environment'))), '2025-04-01').outputs.aksClusterName.value]"
+              "value": "[if(parameters('deployAks'), reference(resourceId('Microsoft.Resources/deployments', format('aks-{0}', parameters('environment'))), '2025-04-01').outputs.aksClusterName.value, '')]"
             },
             "aksPrincipalId": {
               "type": "string",
-              "value": "[reference(resourceId('Microsoft.Resources/deployments', format('aks-{0}', parameters('environment'))), '2025-04-01').outputs.aksPrincipalId.value]"
+              "value": "[if(parameters('deployAks'), reference(resourceId('Microsoft.Resources/deployments', format('aks-{0}', parameters('environment'))), '2025-04-01').outputs.aksPrincipalId.value, '')]"
             },
             "aksOidcIssuerUrl": {
               "type": "string",
-              "value": "[reference(resourceId('Microsoft.Resources/deployments', format('aks-{0}', parameters('environment'))), '2025-04-01').outputs.aksOidcIssuerUrl.value]"
+              "value": "[if(parameters('deployAks'), reference(resourceId('Microsoft.Resources/deployments', format('aks-{0}', parameters('environment'))), '2025-04-01').outputs.aksOidcIssuerUrl.value, '')]"
             },
             "appServiceId": {
               "type": "string",
-              "value": "[reference(resourceId('Microsoft.Resources/deployments', format('app-{0}', parameters('environment'))), '2025-04-01').outputs.appServiceId.value]"
+              "value": "[if(parameters('deployAppService'), reference(resourceId('Microsoft.Resources/deployments', format('app-{0}', parameters('environment'))), '2025-04-01').outputs.appServiceId.value, '')]"
             },
             "appServiceName": {
               "type": "string",
-              "value": "[reference(resourceId('Microsoft.Resources/deployments', format('app-{0}', parameters('environment'))), '2025-04-01').outputs.appServiceName.value]"
+              "value": "[if(parameters('deployAppService'), reference(resourceId('Microsoft.Resources/deployments', format('app-{0}', parameters('environment'))), '2025-04-01').outputs.appServiceName.value, '')]"
             },
             "appServicePrincipalId": {
               "type": "string",
-              "value": "[reference(resourceId('Microsoft.Resources/deployments', format('app-{0}', parameters('environment'))), '2025-04-01').outputs.appServicePrincipalId.value]"
+              "value": "[if(parameters('deployAppService'), reference(resourceId('Microsoft.Resources/deployments', format('app-{0}', parameters('environment'))), '2025-04-01').outputs.appServicePrincipalId.value, '')]"
             },
             "appServiceDefaultHostname": {
               "type": "string",
-              "value": "[reference(resourceId('Microsoft.Resources/deployments', format('app-{0}', parameters('environment'))), '2025-04-01').outputs.appServiceDefaultHostname.value]"
+              "value": "[if(parameters('deployAppService'), reference(resourceId('Microsoft.Resources/deployments', format('app-{0}', parameters('environment'))), '2025-04-01').outputs.appServiceDefaultHostname.value, '')]"
             },
             "agentVmId": {
               "type": "string",

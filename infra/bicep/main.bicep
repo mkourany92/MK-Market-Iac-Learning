@@ -16,6 +16,14 @@ param alertEmail string = 'replace-me@example.com'
 param deployCompute bool = false
 param deployAgentVm bool = environment != 'prod'
 
+@secure()
+param adminPassword string = ''
+param deployAks bool = true
+param deployAppService bool = true
+param aksNodeVmSize string = 'Standard_DC2as_v5'
+param agentVmSize string = 'Standard_DC2as_v5'
+param computeLocation string = location
+
 module foundation './modules/foundation/main.bicep' = {
   name: 'foundation-${environment}'
   params: {
@@ -70,7 +78,7 @@ module compute './modules/compute/main.bicep' = if (deployCompute) {
   name: 'compute-${environment}'
   params: {
     environment: environment
-    location: location
+    location: computeLocation
     tags: foundation.outputs.commonTags
     namePrefix: foundation.outputs.namePrefix
     aksSubnetId: network.outputs.aksSubnetId
@@ -78,8 +86,13 @@ module compute './modules/compute/main.bicep' = if (deployCompute) {
     managementSubnetId: network.outputs.managementSubnetId
     logAnalyticsWorkspaceId: monitoring.outputs.workspaceId
     appInsightsConnectionString: monitoring.outputs.appInsightsConnectionString
-    keyVaultName: '${foundation.outputs.namePrefix}-kv'
+    //keyVaultName: '${foundation.outputs.namePrefix}-kv'
+    adminPassword: adminPassword
     deployAgentVm: deployAgentVm
+    deployAks: deployAks               // <-- add
+    deployAppService: deployAppService // <-- add
+    aksNodeVmSize: aksNodeVmSize       // <-- add
+    agentVmSize: agentVmSize           // <-- add
   }
   dependsOn: [ network, storage, monitoring ]
 }
@@ -92,7 +105,7 @@ output acrLoginServer string = storage.outputs.acrLoginServer
 output logAnalyticsWorkspaceId string = monitoring.outputs.workspaceId
 output appInsightsId string = monitoring.outputs.appInsightsId
 output actionGroupId string = monitoring.outputs.actionGroupId
-output aksClusterId string = deployCompute ? compute.outputs.aksClusterId : ''
-output aksClusterName string = deployCompute ? compute.outputs.aksClusterName : ''
-output appServiceId string = deployCompute ? compute.outputs.appServiceId : ''
-output agentVmId string = deployCompute ? compute.outputs.agentVmId : ''
+output aksClusterId string = deployCompute ? compute!.outputs.aksClusterId : ''
+output aksClusterName string = deployCompute ? compute!.outputs.aksClusterName : ''
+output appServiceId string = deployCompute ? compute!.outputs.appServiceId : ''
+output agentVmId string = deployCompute ? compute!.outputs.agentVmId : ''

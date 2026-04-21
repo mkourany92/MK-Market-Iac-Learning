@@ -11,24 +11,21 @@ param appServiceSubnetId string
 param managementSubnetId string
 param logAnalyticsWorkspaceId string
 param appInsightsConnectionString string
-param keyVaultName string
+@secure()
+param adminPassword string = ''
 param deployAgentVm bool = environment != 'prod'
 
-
-@allowed([
-  'Standard_DS2_v2'
-  'Standard_D2s_v3'
-])
-param vmSize string = 'Standard_DS2_v2'
+param aksNodeVmSize string = 'Standard_DC2as_v5'
+param agentVmSize string = 'Standard_DC2as_v5'
+param deployAks bool = true
+param deployAppService bool = true
 
 var aksNodeCount = environment == 'prod' ? 2 : 1
 var aksMinNodes = environment == 'prod' ? 2 : 1
 var aksMaxNodes = environment == 'prod' ? 5 : 3
-var aksVmSize = environment == 'prod' ? 'Standard_D2s_v3' : 'Standard_DS2_v2'
-// WHY: Prod needs more stable compute; dev/test can burstable
 
 
-module aksCluster './aks-cluster.bicep' = {
+module aksCluster './aks-cluster.bicep' = if (deployAks) {
   name: 'aks-${environment}'
   params: {
     clusterName: '${namePrefix}-aks'
@@ -39,11 +36,11 @@ module aksCluster './aks-cluster.bicep' = {
     nodeCount: aksNodeCount
     minNodeCount: aksMinNodes
     maxNodeCount: aksMaxNodes
-    vmSize: aksVmSize
+    vmSize: aksNodeVmSize
   }
 }
 
-module appService './app-service.bicep' = {
+module appService './app-service.bicep' = if (deployAppService) {
   name: 'app-${environment}'
   params: {
     appServicePlanName: '${namePrefix}-asp'
@@ -64,18 +61,18 @@ module agentVm './agent-vm.bicep' = if (deployAgentVm) {
     location: location
     tags: tags
     subnetId: managementSubnetId
-    vmSize: vmSize
-    keyVaultName: keyVaultName
+    vmSize: agentVmSize
+    adminPassword: adminPassword   // ← add this line
   }
 }
 
-output aksClusterId string = aksCluster.outputs.aksClusterId
-output aksClusterName string = aksCluster.outputs.aksClusterName
-output aksPrincipalId string = aksCluster.outputs.aksPrincipalId
-output aksOidcIssuerUrl string = aksCluster.outputs.aksOidcIssuerUrl
-output appServiceId string = appService.outputs.appServiceId
-output appServiceName string = appService.outputs.appServiceName
-output appServicePrincipalId string = appService.outputs.appServicePrincipalId
-output appServiceDefaultHostname string = appService.outputs.appServiceDefaultHostname
+output aksClusterId string = deployAks ? aksCluster!.outputs.aksClusterId : ''
+output aksClusterName string = deployAks ? aksCluster!.outputs.aksClusterName : ''
+output aksPrincipalId string = deployAks ? aksCluster!.outputs.aksPrincipalId : ''
+output aksOidcIssuerUrl string = deployAks ? aksCluster!.outputs.aksOidcIssuerUrl : ''
+output appServiceId string = deployAppService ? appService!.outputs.appServiceId : ''
+output appServiceName string = deployAppService ? appService!.outputs.appServiceName : ''
+output appServicePrincipalId string = deployAppService ? appService!.outputs.appServicePrincipalId : ''
+output appServiceDefaultHostname string = deployAppService ? appService!.outputs.appServiceDefaultHostname : ''
 output agentVmId string = deployAgentVm ? agentVm!.outputs.agentVmId : ''
 output agentVmPrincipalId string = deployAgentVm ? agentVm!.outputs.agentVmPrincipalId : ''

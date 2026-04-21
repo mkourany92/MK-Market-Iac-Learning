@@ -16,12 +16,12 @@ var planSku = environment == 'prod' ? {
   tier: 'PremiumV2'
   capacity: 1
 } : {
-  name: 'B1'
-  tier: 'Basic'
+  name: 'S1'
+  tier: 'Standard'
   capacity: 1
 }
 // WHY: Prod uses P1v2 for SLA-backed uptime and autoscale support
-// dev/test use B1 to stay inside 150 USD/month budget
+// dev/test use S1 to stay inside 150 USD/month budget
 
 resource appServicePlan 'Microsoft.Web/serverfarms@2023-12-01' = {
   name: appServicePlanName
