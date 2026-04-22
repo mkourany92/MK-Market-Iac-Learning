@@ -2,26 +2,20 @@
   "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
   "contentVersion": "1.0.0.0",
   "parameters": {
-    "environment": {
-      "value": "test"
-    },
-    "location": {
-      "value": "eastus"
-    },
-    "projectName": {
-      "value": "mkmarket-web-market"
-    },
-    "prefix": {
-      "value": "mkmarket"
-    },
-    "owner": {
-      "value": "mkmarket-owner"
-    },
-    "costCenter": {
-      "value": "mkmarket-lab"
-    },
-    "alertEmail": {
-      "value": "replace-me@example.com"
-    }
+    "environment":      { "value": "test" },
+    "location":         { "value": "eastus" },
+    "projectName":      { "value": "mkmarket-web-market" },
+    "prefix":           { "value": "mkmarket" },
+    "owner":            { "value": "mkmarket-owner" },
+    "costCenter":       { "value": "mkmarket-lab" },
+    "alertEmail":       { "value": "mkourany@techopsco.com" },
+    "deployCompute":    { "value": true },
+    "deployAks":        { "value": true },
+    "deployAppService": { "value": true },
+    "deployAgentVm":    { "value": true },
+    "deploySecurity":   { "value": true },
+    "computeLocation":  { "value": "eastus" },
+    "aksNodeVmSize":    { "value": "Standard_DC2as_v5" },
+    "agentVmSize":      { "value": "Standard_DC2as_v5" }
   }
 }
