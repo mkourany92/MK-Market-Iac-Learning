@@ -13,11 +13,11 @@ param aksIdentityPrincipalId string
 // ========== ROLES DEFINITIONS ==========
 // These are Azure built-in role IDs (constants, not secrets)
 
-var keyVaultSecretsOfficerRole = 'a4417e6f-fecd-4de8-b567-7b0420556985' // read/write secrets
-var storageAccountAcrPullRole = '7f951ff9-586f-40af-ae5e-a91766141a92' // pull ACR images
+var keyVaultSecretsOfficerRole = 'b86a8fe4-44ce-4948-aee5-eccb2c155cd7' // read/write secrets
+var storageAccountAcrPullRole = '7f951dda-4ed3-4680-a7ca-43fe172d538d' // pull ACR images
 var storageBlobDataReaderRole = '2a2b9908-6ea1-4ae2-8e65-a410df84e7d1'  // read blobs
 var storageBlobDataContributorRole = 'ba92f5b4-2d11-453d-a403-e96b0029c9fe' // read/write blobs
-var containerRegistryPullRole = '7f951ff9-586f-40af-ae5e-a91766141a92'  // pull from ACR
+var containerRegistryPullRole = '7f951dda-4ed3-4680-a7ca-43fe172d538d'  // pull from ACR
 
 // ========== APP SERVICE RBAC ASSIGNMENTS ==========
 // WHY App Service needs these:
@@ -49,7 +49,7 @@ resource appStorageRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-
 // 1. Container Registry Pull → download container images
 // 2. Virtual Network Contributor → manage load balancer networking
 
-resource aksACRRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+resource aksACRRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (aksIdentityPrincipalId != '') {
   name: guid(acrId, aksIdentityPrincipalId, containerRegistryPullRole)
   scope: resourceGroup()
   properties: {
@@ -64,7 +64,7 @@ resource aksACRRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-0
 // 1. Storage Blob Data Contributor → upload build artifacts
 // 2. Key Vault Crypto User → decrypt secrets during deployment
 
-resource agentStorageRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+resource agentStorageRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (agentIdentityPrincipalId != '') {
   name: guid(storageAccountId, agentIdentityPrincipalId, storageBlobDataContributorRole)
   scope: resourceGroup()
   properties: {
@@ -74,7 +74,7 @@ resource agentStorageRoleAssignment 'Microsoft.Authorization/roleAssignments@202
   }
 }
 
-resource agentKeyVaultRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+resource agentKeyVaultRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (agentIdentityPrincipalId != '') {
   name: guid(keyVaultId, agentIdentityPrincipalId, keyVaultSecretsOfficerRole)
   scope: resourceGroup()
   properties: {
@@ -87,6 +87,6 @@ resource agentKeyVaultRoleAssignment 'Microsoft.Authorization/roleAssignments@20
 // ========== OUTPUTS ==========
 output appKeyVaultAssignmentId string = appKeyVaultRoleAssignment.id
 output appStorageAssignmentId string = appStorageRoleAssignment.id
-output aksACRAssignmentId string = aksACRRoleAssignment.id
-output agentStorageAssignmentId string = agentStorageRoleAssignment.id
-output agentKeyVaultAssignmentId string = agentKeyVaultRoleAssignment.id
+output aksACRAssignmentId string = aksIdentityPrincipalId != '' ? aksACRRoleAssignment!.id : ''
+output agentStorageAssignmentId string = agentIdentityPrincipalId != '' ? agentStorageRoleAssignment!.id : ''
+output agentKeyVaultAssignmentId string = agentIdentityPrincipalId != '' ? agentKeyVaultRoleAssignment!.id : ''

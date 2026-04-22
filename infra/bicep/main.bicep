@@ -23,6 +23,8 @@ param deployAppService bool = true
 param aksNodeVmSize string = 'Standard_DC2as_v5'
 param agentVmSize string = 'Standard_DC2as_v5'
 param computeLocation string = location
+param deploySecurity bool = true
+
 
 module foundation './modules/foundation/main.bicep' = {
   name: 'foundation-${environment}'
@@ -96,6 +98,26 @@ module compute './modules/compute/main.bicep' = if (deployCompute) {
   }
   dependsOn: [ network, storage, monitoring ]
 }
+
+module security './modules/security/main.bicep' = if (deploySecurity) {
+  name: 'security-${environment}'
+  params: {
+    environment: environment
+    location: location
+    tags: foundation.outputs.commonTags
+    tenantId: subscription().tenantId
+    keyVaultName: '${foundation.outputs.namePrefix}-kv'
+    storageAccountId: storage.outputs.storageAccountId
+    acrId: storage.outputs.acrId
+    // WHY ternary: principal IDs only available when compute is deployed
+    // rbac.bicep skips all assignments if appIdentityPrincipalId is empty
+    appIdentityPrincipalId: (deployCompute && deployAppService) ? compute!.outputs.appServicePrincipalId : ''
+    agentIdentityPrincipalId: (deployCompute && deployAgentVm) ? compute!.outputs.agentVmPrincipalId : ''
+    aksIdentityPrincipalId: (deployCompute && deployAks) ? compute!.outputs.aksPrincipalId : ''
+  }
+  dependsOn: [ storage ]
+}
+
 output commonTags object = foundation.outputs.commonTags
 output namePrefix string = foundation.outputs.namePrefix
 output vnetId string = network.outputs.vnetId
@@ -109,3 +131,6 @@ output aksClusterId string = deployCompute ? compute!.outputs.aksClusterId : ''
 output aksClusterName string = deployCompute ? compute!.outputs.aksClusterName : ''
 output appServiceId string = deployCompute ? compute!.outputs.appServiceId : ''
 output agentVmId string = deployCompute ? compute!.outputs.agentVmId : ''
+
+output keyVaultId string = deploySecurity ? security!.outputs.keyVaultId : ''
+output keyVaultUri string = deploySecurity ? security!.outputs.keyVaultUri : ''

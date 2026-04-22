@@ -28,9 +28,10 @@
     },
     "deployCompute": { "value": true },
     "deployAks": { "value": true },
-    "deployAppService": { "value": false },
+    "deployAppService": { "value": true },
 "computeLocation": { "value": "eastus" },     
 "aksNodeVmSize":   { "value": "Standard_DC2as_v5" },  
-"agentVmSize":     { "value": "Standard_DC2as_v5" }  
+"agentVmSize":     { "value": "Standard_DC2as_v5" },
+"deploySecurity": { "value": true }  
   }
 }

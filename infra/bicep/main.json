@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.42.1.51946",
-      "templateHash": "11934769649239789677"
+      "templateHash": "14275438389845759432"
     }
   },
   "parameters": {
@@ -73,6 +73,10 @@
     "computeLocation": {
       "type": "string",
       "defaultValue": "[parameters('location')]"
+    },
+    "deploySecurity": {
+      "type": "bool",
+      "defaultValue": true
     }
   },
   "resources": [
@@ -1996,7 +2000,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.42.1.51946",
-              "templateHash": "16175807092066623446"
+              "templateHash": "17148461792620327533"
             }
           },
           "parameters": {
@@ -2261,7 +2265,7 @@
                     "_generator": {
                       "name": "bicep",
                       "version": "0.42.1.51946",
-                      "templateHash": "13241087515787003642"
+                      "templateHash": "2568354760609891612"
                     }
                   },
                   "parameters": {
@@ -2287,25 +2291,20 @@
                       "type": "string"
                     }
                   },
-                  "variables": {
-                    "planSku": "[if(equals(parameters('environment'), 'prod'), createObject('name', 'P1v2', 'tier', 'PremiumV2', 'capacity', 1), createObject('name', 'S1', 'tier', 'Standard', 'capacity', 1))]"
-                  },
                   "resources": [
                     {
-                      "type": "Microsoft.Web/serverfarms",
-                      "apiVersion": "2023-12-01",
-                      "name": "[parameters('appServicePlanName')]",
+                      "type": "Microsoft.App/managedEnvironments",
+                      "apiVersion": "2024-03-01",
+                      "name": "[format('{0}-env', parameters('appServicePlanName'))]",
                       "location": "[parameters('location')]",
                       "tags": "[parameters('tags')]",
-                      "sku": "[variables('planSku')]",
-                      "kind": "linux",
                       "properties": {
-                        "reserved": true
+                        "zoneRedundant": false
                       }
                     },
                     {
-                      "type": "Microsoft.Web/sites",
-                      "apiVersion": "2023-12-01",
+                      "type": "Microsoft.App/containerApps",
+                      "apiVersion": "2024-03-01",
                       "name": "[parameters('appServiceName')]",
                       "location": "[parameters('location')]",
                       "tags": "[parameters('tags')]",
@@ -2313,39 +2312,51 @@
                         "type": "SystemAssigned"
                       },
                       "properties": {
-                        "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', parameters('appServicePlanName'))]",
-                        "httpsOnly": true,
-                        "virtualNetworkSubnetId": "[parameters('appServiceSubnetId')]",
-                        "siteConfig": {
-                          "linuxFxVersion": "DOCKER|nginx:latest",
-                          "minTlsVersion": "1.2",
-                          "ftpsState": "Disabled",
-                          "http20Enabled": true,
-                          "appSettings": [
+                        "managedEnvironmentId": "[resourceId('Microsoft.App/managedEnvironments', format('{0}-env', parameters('appServicePlanName')))]",
+                        "configuration": {
+                          "ingress": {
+                            "external": true,
+                            "targetPort": 80,
+                            "transport": "http",
+                            "allowInsecure": false
+                          }
+                        },
+                        "template": {
+                          "containers": [
                             {
-                              "name": "APPLICATIONINSIGHTS_CONNECTION_STRING",
-                              "value": "[parameters('appInsightsConnectionString')]"
-                            },
-                            {
-                              "name": "ApplicationInsightsAgent_EXTENSION_VERSION",
-                              "value": "~3"
+                              "name": "[parameters('appServiceName')]",
+                              "image": "nginx:latest",
+                              "resources": {
+                                "cpu": "[json('0.25')]",
+                                "memory": "0.5Gi"
+                              },
+                              "env": [
+                                {
+                                  "name": "APPLICATIONINSIGHTS_CONNECTION_STRING",
+                                  "value": "[parameters('appInsightsConnectionString')]"
+                                }
+                              ]
                             }
-                          ]
+                          ],
+                          "scale": {
+                            "minReplicas": "[if(equals(parameters('environment'), 'prod'), 1, 0)]",
+                            "maxReplicas": "[if(equals(parameters('environment'), 'prod'), 5, 2)]"
+                          }
                         }
                       },
                       "dependsOn": [
-                        "[resourceId('Microsoft.Web/serverfarms', parameters('appServicePlanName'))]"
+                        "[resourceId('Microsoft.App/managedEnvironments', format('{0}-env', parameters('appServicePlanName')))]"
                       ]
                     }
                   ],
                   "outputs": {
                     "appServicePlanId": {
                       "type": "string",
-                      "value": "[resourceId('Microsoft.Web/serverfarms', parameters('appServicePlanName'))]"
+                      "value": "[resourceId('Microsoft.App/managedEnvironments', format('{0}-env', parameters('appServicePlanName')))]"
                     },
                     "appServiceId": {
                       "type": "string",
-                      "value": "[resourceId('Microsoft.Web/sites', parameters('appServiceName'))]"
+                      "value": "[resourceId('Microsoft.App/containerApps', parameters('appServiceName'))]"
                     },
                     "appServiceName": {
                       "type": "string",
@@ -2353,11 +2364,11 @@
                     },
                     "appServicePrincipalId": {
                       "type": "string",
-                      "value": "[reference(resourceId('Microsoft.Web/sites', parameters('appServiceName')), '2023-12-01', 'full').identity.principalId]"
+                      "value": "[reference(resourceId('Microsoft.App/containerApps', parameters('appServiceName')), '2024-03-01', 'full').identity.principalId]"
                     },
                     "appServiceDefaultHostname": {
                       "type": "string",
-                      "value": "[reference(resourceId('Microsoft.Web/sites', parameters('appServiceName')), '2023-12-01').defaultHostName]"
+                      "value": "[reference(resourceId('Microsoft.App/containerApps', parameters('appServiceName')), '2024-03-01').configuration.ingress.fqdn]"
                     }
                   }
                 }
@@ -2400,7 +2411,7 @@
                     "_generator": {
                       "name": "bicep",
                       "version": "0.42.1.51946",
-                      "templateHash": "837233754351906574"
+                      "templateHash": "2195302808586653868"
                     }
                   },
                   "parameters": {
@@ -2462,6 +2473,13 @@
                         "hardwareProfile": {
                           "vmSize": "[parameters('vmSize')]"
                         },
+                        "securityProfile": {
+                          "securityType": "ConfidentialVM",
+                          "uefiSettings": {
+                            "secureBootEnabled": true,
+                            "vTpmEnabled": true
+                          }
+                        },
                         "storageProfile": {
                           "imageReference": {
                             "publisher": "MicrosoftWindowsServer",
@@ -2472,13 +2490,16 @@
                           "osDisk": {
                             "createOption": "FromImage",
                             "managedDisk": {
-                              "storageAccountType": "Premium_LRS"
+                              "storageAccountType": "Premium_LRS",
+                              "securityProfile": {
+                                "securityEncryptionType": "VMGuestStateOnly"
+                              }
                             },
                             "diskSizeGB": 128
                           }
                         },
                         "osProfile": {
-                          "computerName": "[parameters('vmName')]",
+                          "computerName": "[take(parameters('vmName'), 15)]",
                           "adminUsername": "[parameters('adminUsername')]",
                           "adminPassword": "[parameters('adminPassword')]"
                         },
@@ -2594,6 +2615,351 @@
         "[resourceId('Microsoft.Resources/deployments', format('network-{0}', parameters('environment')))]",
         "[resourceId('Microsoft.Resources/deployments', format('storage-{0}', parameters('environment')))]"
       ]
+    },
+    {
+      "condition": "[parameters('deploySecurity')]",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "[format('security-{0}', parameters('environment'))]",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "environment": {
+            "value": "[parameters('environment')]"
+          },
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "tags": {
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', format('foundation-{0}', parameters('environment'))), '2025-04-01').outputs.commonTags.value]"
+          },
+          "tenantId": {
+            "value": "[subscription().tenantId]"
+          },
+          "keyVaultName": {
+            "value": "[format('{0}-kv', reference(resourceId('Microsoft.Resources/deployments', format('foundation-{0}', parameters('environment'))), '2025-04-01').outputs.namePrefix.value)]"
+          },
+          "storageAccountId": {
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', format('storage-{0}', parameters('environment'))), '2025-04-01').outputs.storageAccountId.value]"
+          },
+          "acrId": {
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', format('storage-{0}', parameters('environment'))), '2025-04-01').outputs.acrId.value]"
+          },
+          "appIdentityPrincipalId": "[if(and(parameters('deployCompute'), parameters('deployAppService')), createObject('value', reference(resourceId('Microsoft.Resources/deployments', format('compute-{0}', parameters('environment'))), '2025-04-01').outputs.appServicePrincipalId.value), createObject('value', ''))]",
+          "agentIdentityPrincipalId": "[if(and(parameters('deployCompute'), parameters('deployAgentVm')), createObject('value', reference(resourceId('Microsoft.Resources/deployments', format('compute-{0}', parameters('environment'))), '2025-04-01').outputs.agentVmPrincipalId.value), createObject('value', ''))]",
+          "aksIdentityPrincipalId": "[if(and(parameters('deployCompute'), parameters('deployAks')), createObject('value', reference(resourceId('Microsoft.Resources/deployments', format('compute-{0}', parameters('environment'))), '2025-04-01').outputs.aksPrincipalId.value), createObject('value', ''))]"
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.42.1.51946",
+              "templateHash": "18192063179245087672"
+            }
+          },
+          "parameters": {
+            "environment": {
+              "type": "string"
+            },
+            "location": {
+              "type": "string"
+            },
+            "tags": {
+              "type": "object"
+            },
+            "tenantId": {
+              "type": "string"
+            },
+            "keyVaultName": {
+              "type": "string"
+            },
+            "appIdentityPrincipalId": {
+              "type": "string",
+              "defaultValue": ""
+            },
+            "agentIdentityPrincipalId": {
+              "type": "string",
+              "defaultValue": ""
+            },
+            "aksIdentityPrincipalId": {
+              "type": "string",
+              "defaultValue": ""
+            },
+            "storageAccountId": {
+              "type": "string",
+              "defaultValue": ""
+            },
+            "acrId": {
+              "type": "string",
+              "defaultValue": ""
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.Resources/deployments",
+              "apiVersion": "2025-04-01",
+              "name": "kv-deploy",
+              "properties": {
+                "expressionEvaluationOptions": {
+                  "scope": "inner"
+                },
+                "mode": "Incremental",
+                "parameters": {
+                  "keyVaultName": {
+                    "value": "[parameters('keyVaultName')]"
+                  },
+                  "location": {
+                    "value": "[parameters('location')]"
+                  },
+                  "tags": {
+                    "value": "[parameters('tags')]"
+                  },
+                  "tenantId": {
+                    "value": "[parameters('tenantId')]"
+                  }
+                },
+                "template": {
+                  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                  "contentVersion": "1.0.0.0",
+                  "metadata": {
+                    "_generator": {
+                      "name": "bicep",
+                      "version": "0.42.1.51946",
+                      "templateHash": "9089568269546604097"
+                    }
+                  },
+                  "parameters": {
+                    "keyVaultName": {
+                      "type": "string"
+                    },
+                    "location": {
+                      "type": "string"
+                    },
+                    "tags": {
+                      "type": "object"
+                    },
+                    "tenantId": {
+                      "type": "string"
+                    }
+                  },
+                  "resources": [
+                    {
+                      "type": "Microsoft.KeyVault/vaults",
+                      "apiVersion": "2023-07-01",
+                      "name": "[parameters('keyVaultName')]",
+                      "location": "[parameters('location')]",
+                      "tags": "[parameters('tags')]",
+                      "properties": {
+                        "tenantId": "[parameters('tenantId')]",
+                        "sku": {
+                          "family": "A",
+                          "name": "premium"
+                        },
+                        "enableRbacAuthorization": true,
+                        "enableSoftDelete": true,
+                        "softDeleteRetentionInDays": 90,
+                        "enablePurgeProtection": true,
+                        "networkAcls": {
+                          "bypass": "AzureServices",
+                          "defaultAction": "Deny"
+                        }
+                      }
+                    }
+                  ],
+                  "outputs": {
+                    "keyVaultId": {
+                      "type": "string",
+                      "value": "[resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName'))]"
+                    },
+                    "keyVaultUri": {
+                      "type": "string",
+                      "value": "[reference(resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName')), '2023-07-01').vaultUri]"
+                    },
+                    "keyVaultName": {
+                      "type": "string",
+                      "value": "[parameters('keyVaultName')]"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "condition": "[not(equals(parameters('appIdentityPrincipalId'), ''))]",
+              "type": "Microsoft.Resources/deployments",
+              "apiVersion": "2025-04-01",
+              "name": "rbac-deploy",
+              "properties": {
+                "expressionEvaluationOptions": {
+                  "scope": "inner"
+                },
+                "mode": "Incremental",
+                "parameters": {
+                  "keyVaultId": {
+                    "value": "[reference(resourceId('Microsoft.Resources/deployments', 'kv-deploy'), '2025-04-01').outputs.keyVaultId.value]"
+                  },
+                  "storageAccountId": {
+                    "value": "[parameters('storageAccountId')]"
+                  },
+                  "acrId": {
+                    "value": "[parameters('acrId')]"
+                  },
+                  "appIdentityPrincipalId": {
+                    "value": "[parameters('appIdentityPrincipalId')]"
+                  },
+                  "agentIdentityPrincipalId": {
+                    "value": "[parameters('agentIdentityPrincipalId')]"
+                  },
+                  "aksIdentityPrincipalId": {
+                    "value": "[parameters('aksIdentityPrincipalId')]"
+                  }
+                },
+                "template": {
+                  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                  "contentVersion": "1.0.0.0",
+                  "metadata": {
+                    "_generator": {
+                      "name": "bicep",
+                      "version": "0.42.1.51946",
+                      "templateHash": "17810881594100641244"
+                    }
+                  },
+                  "parameters": {
+                    "keyVaultId": {
+                      "type": "string"
+                    },
+                    "storageAccountId": {
+                      "type": "string"
+                    },
+                    "acrId": {
+                      "type": "string"
+                    },
+                    "appIdentityPrincipalId": {
+                      "type": "string"
+                    },
+                    "agentIdentityPrincipalId": {
+                      "type": "string"
+                    },
+                    "aksIdentityPrincipalId": {
+                      "type": "string"
+                    }
+                  },
+                  "variables": {
+                    "keyVaultSecretsOfficerRole": "b86a8fe4-44ce-4948-aee5-eccb2c155cd7",
+                    "storageAccountAcrPullRole": "7f951dda-4ed3-4680-a7ca-43fe172d538d",
+                    "storageBlobDataReaderRole": "2a2b9908-6ea1-4ae2-8e65-a410df84e7d1",
+                    "storageBlobDataContributorRole": "ba92f5b4-2d11-453d-a403-e96b0029c9fe",
+                    "containerRegistryPullRole": "7f951dda-4ed3-4680-a7ca-43fe172d538d"
+                  },
+                  "resources": [
+                    {
+                      "type": "Microsoft.Authorization/roleAssignments",
+                      "apiVersion": "2022-04-01",
+                      "name": "[guid(parameters('keyVaultId'), parameters('appIdentityPrincipalId'), variables('keyVaultSecretsOfficerRole'))]",
+                      "properties": {
+                        "roleDefinitionId": "[format('/subscriptions/{0}/providers/Microsoft.Authorization/roleDefinitions/{1}', subscription().subscriptionId, variables('keyVaultSecretsOfficerRole'))]",
+                        "principalId": "[parameters('appIdentityPrincipalId')]",
+                        "principalType": "ServicePrincipal"
+                      }
+                    },
+                    {
+                      "type": "Microsoft.Authorization/roleAssignments",
+                      "apiVersion": "2022-04-01",
+                      "name": "[guid(parameters('storageAccountId'), parameters('appIdentityPrincipalId'), variables('storageBlobDataReaderRole'))]",
+                      "properties": {
+                        "roleDefinitionId": "[format('/subscriptions/{0}/providers/Microsoft.Authorization/roleDefinitions/{1}', subscription().subscriptionId, variables('storageBlobDataReaderRole'))]",
+                        "principalId": "[parameters('appIdentityPrincipalId')]",
+                        "principalType": "ServicePrincipal"
+                      }
+                    },
+                    {
+                      "condition": "[not(equals(parameters('aksIdentityPrincipalId'), ''))]",
+                      "type": "Microsoft.Authorization/roleAssignments",
+                      "apiVersion": "2022-04-01",
+                      "name": "[guid(parameters('acrId'), parameters('aksIdentityPrincipalId'), variables('containerRegistryPullRole'))]",
+                      "properties": {
+                        "roleDefinitionId": "[format('/subscriptions/{0}/providers/Microsoft.Authorization/roleDefinitions/{1}', subscription().subscriptionId, variables('containerRegistryPullRole'))]",
+                        "principalId": "[parameters('aksIdentityPrincipalId')]",
+                        "principalType": "ServicePrincipal"
+                      }
+                    },
+                    {
+                      "condition": "[not(equals(parameters('agentIdentityPrincipalId'), ''))]",
+                      "type": "Microsoft.Authorization/roleAssignments",
+                      "apiVersion": "2022-04-01",
+                      "name": "[guid(parameters('storageAccountId'), parameters('agentIdentityPrincipalId'), variables('storageBlobDataContributorRole'))]",
+                      "properties": {
+                        "roleDefinitionId": "[format('/subscriptions/{0}/providers/Microsoft.Authorization/roleDefinitions/{1}', subscription().subscriptionId, variables('storageBlobDataContributorRole'))]",
+                        "principalId": "[parameters('agentIdentityPrincipalId')]",
+                        "principalType": "ServicePrincipal"
+                      }
+                    },
+                    {
+                      "condition": "[not(equals(parameters('agentIdentityPrincipalId'), ''))]",
+                      "type": "Microsoft.Authorization/roleAssignments",
+                      "apiVersion": "2022-04-01",
+                      "name": "[guid(parameters('keyVaultId'), parameters('agentIdentityPrincipalId'), variables('keyVaultSecretsOfficerRole'))]",
+                      "properties": {
+                        "roleDefinitionId": "[format('/subscriptions/{0}/providers/Microsoft.Authorization/roleDefinitions/{1}', subscription().subscriptionId, variables('keyVaultSecretsOfficerRole'))]",
+                        "principalId": "[parameters('agentIdentityPrincipalId')]",
+                        "principalType": "ServicePrincipal"
+                      }
+                    }
+                  ],
+                  "outputs": {
+                    "appKeyVaultAssignmentId": {
+                      "type": "string",
+                      "value": "[resourceId('Microsoft.Authorization/roleAssignments', guid(parameters('keyVaultId'), parameters('appIdentityPrincipalId'), variables('keyVaultSecretsOfficerRole')))]"
+                    },
+                    "appStorageAssignmentId": {
+                      "type": "string",
+                      "value": "[resourceId('Microsoft.Authorization/roleAssignments', guid(parameters('storageAccountId'), parameters('appIdentityPrincipalId'), variables('storageBlobDataReaderRole')))]"
+                    },
+                    "aksACRAssignmentId": {
+                      "type": "string",
+                      "value": "[if(not(equals(parameters('aksIdentityPrincipalId'), '')), resourceId('Microsoft.Authorization/roleAssignments', guid(parameters('acrId'), parameters('aksIdentityPrincipalId'), variables('containerRegistryPullRole'))), '')]"
+                    },
+                    "agentStorageAssignmentId": {
+                      "type": "string",
+                      "value": "[if(not(equals(parameters('agentIdentityPrincipalId'), '')), resourceId('Microsoft.Authorization/roleAssignments', guid(parameters('storageAccountId'), parameters('agentIdentityPrincipalId'), variables('storageBlobDataContributorRole'))), '')]"
+                    },
+                    "agentKeyVaultAssignmentId": {
+                      "type": "string",
+                      "value": "[if(not(equals(parameters('agentIdentityPrincipalId'), '')), resourceId('Microsoft.Authorization/roleAssignments', guid(parameters('keyVaultId'), parameters('agentIdentityPrincipalId'), variables('keyVaultSecretsOfficerRole'))), '')]"
+                    }
+                  }
+                }
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Resources/deployments', 'kv-deploy')]"
+              ]
+            }
+          ],
+          "outputs": {
+            "keyVaultId": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.Resources/deployments', 'kv-deploy'), '2025-04-01').outputs.keyVaultId.value]"
+            },
+            "keyVaultUri": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.Resources/deployments', 'kv-deploy'), '2025-04-01').outputs.keyVaultUri.value]"
+            },
+            "keyVaultName": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.Resources/deployments', 'kv-deploy'), '2025-04-01').outputs.keyVaultName.value]"
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Resources/deployments', format('compute-{0}', parameters('environment')))]",
+        "[resourceId('Microsoft.Resources/deployments', format('foundation-{0}', parameters('environment')))]",
+        "[resourceId('Microsoft.Resources/deployments', format('storage-{0}', parameters('environment')))]"
+      ]
     }
   ],
   "outputs": {
@@ -2648,6 +3014,14 @@
     "agentVmId": {
       "type": "string",
       "value": "[if(parameters('deployCompute'), reference(resourceId('Microsoft.Resources/deployments', format('compute-{0}', parameters('environment'))), '2025-04-01').outputs.agentVmId.value, '')]"
+    },
+    "keyVaultId": {
+      "type": "string",
+      "value": "[if(parameters('deploySecurity'), reference(resourceId('Microsoft.Resources/deployments', format('security-{0}', parameters('environment'))), '2025-04-01').outputs.keyVaultId.value, '')]"
+    },
+    "keyVaultUri": {
+      "type": "string",
+      "value": "[if(parameters('deploySecurity'), reference(resourceId('Microsoft.Resources/deployments', format('security-{0}', parameters('environment'))), '2025-04-01').outputs.keyVaultUri.value, '')]"
     }
   }
 }

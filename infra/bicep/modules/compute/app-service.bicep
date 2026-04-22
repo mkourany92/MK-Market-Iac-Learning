@@ -1,74 +1,76 @@
-﻿// App Service Module
-// WHY App Service Plan B1: cheapest tier with VNet integration support
+﻿// Container Apps Module (replaces App Service)
+// WHY Container Apps: no compute quota required, scales to zero, consumption billing
+// WHY no VNet injection: existing appservice subnet is /24 — Container Apps needs /23 minimum
+//   To enable VNet injection later: resize subnet to /23 + change delegation to Microsoft.App/environments
 // WHY system-assigned identity: app reads Key Vault secrets without credentials
-// WHY HTTPS-only: no plain HTTP traffic in any environment
+// WHY HTTPS-only: TLS terminated at Container Apps edge, HTTP redirected automatically
 
-param appServicePlanName string
-param appServiceName string
+param appServicePlanName string       // used as Container Apps environment name
+param appServiceName string           // used as container app name
 param location string
 param tags object
-param appServiceSubnetId string
+param appServiceSubnetId string       // reserved — VNet injection requires /23 + Microsoft.App/environments delegation
 param appInsightsConnectionString string
 param environment string
 
-var planSku = environment == 'prod' ? {
-  name: 'P1v2'
-  tier: 'PremiumV2'
-  capacity: 1
-} : {
-  name: 'S1'
-  tier: 'Standard'
-  capacity: 1
-}
-// WHY: Prod uses P1v2 for SLA-backed uptime and autoscale support
-// dev/test use S1 to stay inside 150 USD/month budget
-
-resource appServicePlan 'Microsoft.Web/serverfarms@2023-12-01' = {
-  name: appServicePlanName
+resource containerAppEnv 'Microsoft.App/managedEnvironments@2024-03-01' = {
+  name: '${appServicePlanName}-env'
   location: location
   tags: tags
-  sku: planSku
-  kind: 'linux'
   properties: {
-    reserved: true   // WHY: Required flag for Linux App Service Plans
+    // WHY no vnetConfiguration: subnet is /24, Container Apps VNet injection requires /23 minimum
+    zoneRedundant: false  // WHY: dev/test does not need cross-zone HA
   }
 }
 
-resource appService 'Microsoft.Web/sites@2023-12-01' = {
+resource containerApp 'Microsoft.App/containerApps@2024-03-01' = {
   name: appServiceName
   location: location
   tags: tags
   identity: {
     type: 'SystemAssigned'
-    // WHY: App reads secrets from Key Vault using this identity
-    // Principal ID is used to assign Key Vault Secrets Officer role
+    // WHY: App reads Key Vault secrets using this identity — no credentials in config
   }
   properties: {
-    serverFarmId: appServicePlan.id
-    httpsOnly: true   // WHY: Reject all plain HTTP requests at platform level
-    virtualNetworkSubnetId: appServiceSubnetId  // WHY: VNet integration for private data access
-    siteConfig: {
-      linuxFxVersion: 'DOCKER|nginx:latest'   // placeholder, replaced by pipeline
-      minTlsVersion: '1.2'   // WHY: Block TLS 1.0/1.1, only allow modern secure TLS
-      ftpsState: 'Disabled'  // WHY: FTP is unencrypted, never needed in production
-      http20Enabled: true    // WHY: HTTP/2 = better performance, multiplexing
-      appSettings: [
+    managedEnvironmentId: containerAppEnv.id
+    configuration: {
+      ingress: {
+        external: true        // WHY: Exposes HTTPS endpoint publicly; TLS handled by platform
+        targetPort: 80
+        transport: 'http'
+        allowInsecure: false  // WHY: Reject plain HTTP, enforce HTTPS only
+      }
+    }
+    template: {
+      containers: [
         {
-          name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
-          value: appInsightsConnectionString
-          // WHY: App Insights connection string enables request/exception telemetry
-        }
-        {
-          name: 'ApplicationInsightsAgent_EXTENSION_VERSION'
-          value: '~3'
+          name: appServiceName
+          image: 'nginx:latest'  // placeholder, replaced by pipeline
+          resources: {
+            cpu: json('0.25')    // WHY: Minimum allocation — consumption billing = near-zero at idle
+            memory: '0.5Gi'
+          }
+          env: [
+            {
+              name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
+              value: appInsightsConnectionString
+              // WHY: Enables App Insights telemetry without SDK changes
+            }
+          ]
         }
       ]
+      scale: {
+        minReplicas: environment == 'prod' ? 1 : 0
+        // WHY 0 for dev/test: scales to zero when idle = $0 cost
+        // WHY 1 for prod: avoids cold start on first request
+        maxReplicas: environment == 'prod' ? 5 : 2
+      }
     }
   }
 }
 
-output appServicePlanId string = appServicePlan.id
-output appServiceId string = appService.id
-output appServiceName string = appService.name
-output appServicePrincipalId string = appService.identity.principalId
-output appServiceDefaultHostname string = appService.properties.defaultHostName
+output appServicePlanId string = containerAppEnv.id
+output appServiceId string = containerApp.id
+output appServiceName string = containerApp.name
+output appServicePrincipalId string = containerApp.identity.principalId
+output appServiceDefaultHostname string = containerApp.properties.configuration.ingress.fqdn
