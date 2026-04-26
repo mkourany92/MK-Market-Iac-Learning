@@ -73,7 +73,7 @@ stages:
   dependsOn: DeployDev
   condition: succeeded()
   pool:
-    name: 'Linux-Agent'
+    name: 'Default'
     demands: 
       - agent.name -equals Linux-Agent
   jobs:
@@ -102,7 +102,7 @@ stages:
   dependsOn: DeployTest
   condition: succeeded()
   pool:
-    name: 'Linux-Agent'
+    name: 'Default'
     demands: 
       - agent.name -equals Linux-Agent
   jobs:
