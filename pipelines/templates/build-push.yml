@@ -26,6 +26,3 @@ steps:
           --image ${{ parameters.imageRepository }}:latest \
           src/webapp/
 
-        # Push both tags
-        docker push ${{ parameters.acrName }}.azurecr.io/${{ parameters.imageRepository }}:${{ parameters.imageTag }}
-        docker push ${{ parameters.acrName }}.azurecr.io/${{ parameters.imageRepository }}:latest
