@@ -24,7 +24,9 @@ stages:
 - stage: Build
   displayName: 'Build & Push Image'
   pool:
-    name: 'Linux-Agent'
+    name: 'Default'
+    demands:
+      - agent.name -equals Linux-Agent
   jobs:
   - job: BuildPush
     displayName: 'Docker Build + ACR Push'
@@ -42,7 +44,9 @@ stages:
   dependsOn: Build
   condition: succeeded()
   pool:
-    name: 'Linux-Agent'
+    name: 'Default'
+    demands:
+      - agent.name -equals Linux-Agent
   jobs:
   - deployment: DeployDev
     displayName: 'Deploy Dev Environment'
@@ -70,6 +74,8 @@ stages:
   condition: succeeded()
   pool:
     name: 'Linux-Agent'
+    demands: 
+      - agent.name -equals Linux-Agent
   jobs:
   - deployment: DeployTest
     displayName: 'Deploy Test Environment'
@@ -97,6 +103,8 @@ stages:
   condition: succeeded()
   pool:
     name: 'Linux-Agent'
+    demands: 
+      - agent.name -equals Linux-Agent
   jobs:
   - deployment: DeployProd
     displayName: 'Deploy Prod Environment'
