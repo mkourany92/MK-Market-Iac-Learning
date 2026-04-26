@@ -1,0 +1,76 @@
+parameters:
+  - name: serviceConnection
+    type: string
+  - name: resourceGroup
+    type: string
+  - name: parameterFile
+    type: string
+  - name: containerAppName
+    type: string
+  - name: containerAppRg
+    type: string
+  - name: acrName
+    type: string
+  - name: imageRepository
+    type: string
+  - name: imageTag
+    type: string
+  - name: adminPassword
+    type: string
+    default: ''
+
+steps:
+# 1. Deploy Bicep infrastructure (incremental — only changes apply)
+- task: AzureCLI@2
+  displayName: 'Deploy Bicep Infrastructure'
+  inputs:
+    azureSubscription: ${{ parameters.serviceConnection }}
+    scriptType: 'pscore'
+    scriptLocation: 'inlineScript'
+    inlineScript: |
+      $params = @(
+        "infra/bicep/parameters/${{ parameters.parameterFile }}"
+      )
+      if ("${{ parameters.adminPassword }}" -ne "") {
+        $params += "adminPassword=${{ parameters.adminPassword }}"
+      }
+      az deployment group create `
+        --resource-group ${{ parameters.resourceGroup }} `
+        --template-file infra/bicep/main.bicep `
+        --parameters @params `
+        --mode Incremental
+
+# 2. Update Container App to use the newly built image
+- task: AzureCLI@2
+  displayName: 'Update Container App Image'
+  inputs:
+    azureSubscription: ${{ parameters.serviceConnection }}
+    scriptType: 'bash'
+    scriptLocation: 'inlineScript'
+    inlineScript: |
+      az containerapp update \
+        --name ${{ parameters.containerAppName }} \
+        --resource-group ${{ parameters.containerAppRg }} \
+        --image ${{ parameters.acrName }}.azurecr.io/${{ parameters.imageRepository }}:${{ parameters.imageTag }}
+
+# 3. Smoke test — verify Container App returns 200
+- task: AzureCLI@2
+  displayName: 'Smoke Test'
+  inputs:
+    azureSubscription: ${{ parameters.serviceConnection }}
+    scriptType: 'bash'
+    scriptLocation: 'inlineScript'
+    inlineScript: |
+      FQDN=$(az containerapp show \
+        --name ${{ parameters.containerAppName }} \
+        --resource-group ${{ parameters.containerAppRg }} \
+        --query "properties.configuration.ingress.fqdn" -o tsv)
+      
+      echo "Testing https://$FQDN"
+      STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://$FQDN")
+      
+      if [ "$STATUS" != "200" ]; then
+        echo "Smoke test FAILED — HTTP $STATUS"
+        exit 1
+      fi
+      echo "Smoke test PASSED — HTTP $STATUS"

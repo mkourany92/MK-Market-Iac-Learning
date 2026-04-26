@@ -1,0 +1,118 @@
+trigger:
+  branches:
+    include:
+      - main
+  paths:
+    include:
+      - src/**
+      - infra/**
+
+pr:
+  branches:
+    include:
+      - main
+
+variables:
+  acrName: 'mkmarketdevacr'
+  imageRepository: 'mkmarket-webapp'
+  containerAppName: 'mkmarket-dev-app'
+  buildId: $(Build.BuildId)
+
+stages:
+
+# ─── Stage 1: Build & Push Docker image ─────────────────────────────────────
+- stage: Build
+  displayName: 'Build & Push Image'
+  pool:
+    name: 'Linux-Agent'
+  jobs:
+  - job: BuildPush
+    displayName: 'Docker Build + ACR Push'
+    steps:
+    - template: templates/build-push.yml
+      parameters:
+        acrName: $(acrName)
+        imageRepository: $(imageRepository)
+        imageTag: $(buildId)
+        serviceConnection: 'mkmarket-azure'
+
+# ─── Stage 2: Deploy Dev ─────────────────────────────────────────────────────
+- stage: DeployDev
+  displayName: 'Deploy → Dev'
+  dependsOn: Build
+  condition: succeeded()
+  pool:
+    name: 'Linux-Agent'
+  jobs:
+  - deployment: DeployDev
+    displayName: 'Deploy Dev Environment'
+    environment: 'mkmarket-dev'   # ADO environment (tracks deployments)
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - template: templates/deploy-env.yml
+            parameters:
+              serviceConnection: 'mkmarket-azure'
+              resourceGroup: 'mkmarket-dev-rg'
+              parameterFile: 'infra/bicep/parameters/dev/main.parameters.json'
+              containerAppName: 'mkmarket-dev-app'
+              containerAppRg: 'mkmarket-dev-rg'
+              acrName: $(acrName)
+              imageRepository: $(imageRepository)
+              imageTag: $(buildId)
+              adminPassword: $(AGENT_VM_PASSWORD)  # pipeline secret variable
+
+# ─── Stage 3: Deploy Test ─────────────────────────────────────────────────────
+- stage: DeployTest
+  displayName: 'Deploy → Test'
+  dependsOn: DeployDev
+  condition: succeeded()
+  pool:
+    name: 'Linux-Agent'
+  jobs:
+  - deployment: DeployTest
+    displayName: 'Deploy Test Environment'
+    environment: 'mkmarket-test'
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - template: templates/deploy-env.yml
+            parameters:
+              serviceConnection: 'mkmarket-azure'
+              resourceGroup: 'mkmarket-test-rg'
+              parameterFile: 'infra/bicep/parameters/test/main.parameters.json'
+              containerAppName: 'mkmarket-test-app'
+              containerAppRg: 'mkmarket-test-rg'
+              acrName: $(acrName)
+              imageRepository: $(imageRepository)
+              imageTag: $(buildId)
+              adminPassword: $(AGENT_VM_PASSWORD)
+
+# ─── Stage 4: Deploy Prod (manual approval gate) ─────────────────────────────
+- stage: DeployProd
+  displayName: 'Deploy → Prod'
+  dependsOn: DeployTest
+  condition: succeeded()
+  pool:
+    name: 'Linux-Agent'
+  jobs:
+  - deployment: DeployProd
+    displayName: 'Deploy Prod Environment'
+    environment: 'mkmarket-prod'   # ← approval gate configured on this ADO environment
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - template: templates/deploy-env.yml
+            parameters:
+              serviceConnection: 'mkmarket-azure'
+              resourceGroup: 'mkmarket-prod-rg'
+              parameterFile: 'infra/bicep/parameters/prod/main.parameters.json'
+              containerAppName: 'mkmarket-prod-app'
+              containerAppRg: 'mkmarket-prod-rg'
+              acrName: $(acrName)
+              imageRepository: $(imageRepository)
+              imageTag: $(buildId)
+              adminPassword: ''   # no agent VM in prod
