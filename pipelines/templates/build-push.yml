@@ -16,14 +16,11 @@ steps:
     scriptType: 'bash'
     scriptLocation: 'inlineScript'
     inlineScript: |
-      # Login to ACR
-      az acr login --name ${{ parameters.acrName }}
-      
-      # Build image
-      docker build \
-        -t ${{ parameters.acrName }}.azurecr.io/${{ parameters.imageRepository }}:${{ parameters.imageTag }} \
-        -t ${{ parameters.acrName }}.azurecr.io/${{ parameters.imageRepository }}:latest \
-        src/webapp/
+      az acr build \
+  --registry ${{ parameters.acrName }} \
+  --image ${{ parameters.imageRepository }}:${{ parameters.imageTag }} \
+  --image ${{ parameters.imageRepository }}:latest \
+  src/webapp/
       
       # Push both tags
       docker push ${{ parameters.acrName }}.azurecr.io/${{ parameters.imageRepository }}:${{ parameters.imageTag }}
