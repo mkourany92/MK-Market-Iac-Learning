@@ -38,7 +38,7 @@ resource appKeyVaultRoleAssignment 'Microsoft.Authorization/roleAssignments@2022
 
 resource appAcrRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
   name: guid(acrId, appIdentityPrincipalId, containerRegistryPullRole)
-  scope: resourceGroup()
+  scope: existingAcr    // ← changed
   properties: {
     roleDefinitionId: '/subscriptions/${subscription().subscriptionId}/providers/Microsoft.Authorization/roleDefinitions/${containerRegistryPullRole}'
     principalId: appIdentityPrincipalId
@@ -63,7 +63,7 @@ resource appStorageRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-
 
 resource aksACRRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (aksIdentityPrincipalId != '') {
   name: guid(acrId, aksIdentityPrincipalId, containerRegistryPullRole)
-  scope: resourceGroup()
+  scope: existingAcr    // ← changed
   properties: {
     roleDefinitionId: '/subscriptions/${subscription().subscriptionId}/providers/Microsoft.Authorization/roleDefinitions/${containerRegistryPullRole}'
     principalId: aksIdentityPrincipalId
@@ -102,3 +102,15 @@ output appStorageAssignmentId string = appStorageRoleAssignment.id
 output aksACRAssignmentId string = aksIdentityPrincipalId != '' ? aksACRRoleAssignment!.id : ''
 output agentStorageAssignmentId string = agentIdentityPrincipalId != '' ? agentStorageRoleAssignment!.id : ''
 output agentKeyVaultAssignmentId string = agentIdentityPrincipalId != '' ? agentKeyVaultRoleAssignment!.id : ''
+
+// ========== ACR CROSS-RG REFERENCE ==========
+// WHY: ACR lives in mkmarket-dev-rg but is shared by all environments.
+// Scoping to the ACR resource directly ensures AcrPull is always on the correct resource,
+// regardless of which environment RG this Bicep is deployed into.
+var acrRgName = split(acrId, '/')[4]
+var acrResourceName = last(split(acrId, '/'))
+
+resource existingAcr 'Microsoft.ContainerRegistry/registries@2023-07-01' existing = {
+  name: acrResourceName
+  scope: resourceGroup(acrRgName)
+}
