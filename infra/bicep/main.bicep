@@ -95,7 +95,7 @@ module compute './modules/compute/main.bicep' = if (deployCompute) {
     deployAppService: deployAppService // <-- add
     aksNodeVmSize: aksNodeVmSize       // <-- add
     agentVmSize: agentVmSize           // <-- add
-    acrLoginServer: storage.outputs.acrLoginServer // <-- add
+    //acrLoginServer: storage.outputs.acrLoginServer // <-- add
   }
   dependsOn: [ network, storage, monitoring ]
 }

@@ -5,14 +5,14 @@
 // WHY system-assigned identity: app reads Key Vault secrets without credentials
 // WHY HTTPS-only: TLS terminated at Container Apps edge, HTTP redirected automatically
 
-param appServicePlanName string       // used as Container Apps environment name
-param appServiceName string           // used as container app name
+param appServicePlanName string // used as Container Apps environment name
+param appServiceName string // used as container app name
 param location string
 param tags object
 //param appServiceSubnetId string       // reserved — VNet injection requires /23 + Microsoft.App/environments delegation
 param appInsightsConnectionString string
 param environment string
-param acrLoginServer string   // e.g. mkmarketdevacr.azurecr.io
+//param acrLoginServer string   // e.g. mkmarketdevacr.azurecr.io
 
 resource containerAppEnv 'Microsoft.App/managedEnvironments@2024-03-01' = {
   name: '${appServicePlanName}-env'
@@ -20,7 +20,7 @@ resource containerAppEnv 'Microsoft.App/managedEnvironments@2024-03-01' = {
   tags: tags
   properties: {
     // WHY no vnetConfiguration: subnet is /24, Container Apps VNet injection requires /23 minimum
-    zoneRedundant: false  // WHY: dev/test does not need cross-zone HA
+    zoneRedundant: false // WHY: dev/test does not need cross-zone HA
   }
 }
 
@@ -36,25 +36,25 @@ resource containerApp 'Microsoft.App/containerApps@2024-03-01' = {
     managedEnvironmentId: containerAppEnv.id
     configuration: {
       ingress: {
-        external: true        // WHY: Exposes HTTPS endpoint publicly; TLS handled by platform
+        external: true // WHY: Exposes HTTPS endpoint publicly; TLS handled by platform
         targetPort: 80
         transport: 'http'
-        allowInsecure: false  // WHY: Reject plain HTTP, enforce HTTPS only
+        allowInsecure: false // WHY: Reject plain HTTP, enforce HTTPS only
       }
-      registries: [
+      /*registries: [
         {
           server: acrLoginServer
           identity: 'system'  // WHY: Pull container images from ACR using Container Apps' system identity
         }
-      ]
+      ]*/
     }
     template: {
       containers: [
         {
           name: appServiceName
-          image: 'nginx:latest'  // placeholder, replaced by pipeline
+          image: 'nginx:latest' // placeholder, replaced by pipeline
           resources: {
-            cpu: json('0.25')    // WHY: Minimum allocation — consumption billing = near-zero at idle
+            cpu: json('0.25') // WHY: Minimum allocation — consumption billing = near-zero at idle
             memory: '0.5Gi'
           }
           env: [
