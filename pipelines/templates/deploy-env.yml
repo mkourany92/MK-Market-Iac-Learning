@@ -25,19 +25,19 @@ steps:
   displayName: 'Deploy Bicep Infrastructure'
   inputs:
     azureSubscription: ${{ parameters.serviceConnection }}
-    scriptType: 'pscore'
+    scriptType: 'bash'
     scriptLocation: 'inlineScript'
     inlineScript: |
-      $params = @(
-        "infra/bicep/parameters/${{ parameters.parameterFile }}"
-      )
-      if ("${{ parameters.adminPassword }}" -ne "") {
-        $params += "adminPassword=${{ parameters.adminPassword }}"
-      }
-      az deployment group create `
-        --resource-group ${{ parameters.resourceGroup }} `
-        --template-file infra/bicep/main.bicep `
-        --parameters @params `
+      EXTRA_PARAMS=""
+      if [ -n "${{ parameters.adminPassword }}" ]; then
+        EXTRA_PARAMS="adminPassword=${{ parameters.adminPassword }}"
+      fi
+
+      az deployment group create \
+        --resource-group ${{ parameters.resourceGroup }} \
+        --template-file infra/bicep/main.bicep \
+        --parameters @${{ parameters.parameterFile }} \
+        $( [ -n "$EXTRA_PARAMS" ] && echo "--parameters $EXTRA_PARAMS" ) \
         --mode Incremental
 
 # 2. Update Container App to use the newly built image
