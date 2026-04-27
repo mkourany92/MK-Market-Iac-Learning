@@ -52,7 +52,7 @@ resource containerApp 'Microsoft.App/containerApps@2024-03-01' = {
       containers: [
         {
           name: appServiceName
-          image: 'nginx:latest' // placeholder, replaced by pipeline
+          image: 'nginxinc/nginx-unprivileged:latest'  // listens on 8080, matches targetPort
           resources: {
             cpu: json('0.25') // WHY: Minimum allocation — consumption billing = near-zero at idle
             memory: '0.5Gi'
