@@ -68,23 +68,26 @@ steps:
       scriptType: "bash"
       scriptLocation: "inlineScript"
       inlineScript: |
-        FQDN=$(az containerapp show \
-          --name ${{ parameters.containerAppName }} \
-          --resource-group ${{ parameters.containerAppRg }} \
-          --query "properties.configuration.ingress.fqdn" -o tsv)
+        echo "Waiting for latest revision to become ready..."
 
-        echo "Testing https://$FQDN"
-
-        # Retry for up to 3 minutes (cold start from scale-to-zero)
         for i in $(seq 1 18); do
-          STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "https://$FQDN" || echo "000")
-          echo "Attempt $i: HTTP $STATUS"
-          if [ "$STATUS" = "200" ]; then
-            echo "Smoke test PASSED"
+          RUNNING=$(az containerapp revision list \
+            --name ${{ parameters.containerAppName }} \
+            --resource-group ${{ parameters.containerAppRg }} \
+            --query "[0].properties.runningState" -o tsv 2>/dev/null)
+
+          echo "Attempt $i: revision state = $RUNNING"
+
+          if [ "$RUNNING" = "Running" ]; then
+            FQDN=$(az containerapp show \
+              --name ${{ parameters.containerAppName }} \
+              --resource-group ${{ parameters.containerAppRg }} \
+              --query "properties.configuration.ingress.fqdn" -o tsv)
+            echo "Smoke test PASSED — https://$FQDN"
             exit 0
           fi
           sleep 10
         done
 
-        echo "Smoke test FAILED after 3 minutes"
+        echo "Smoke test FAILED — revision never reached Running state"
         exit 1
