@@ -14,7 +14,7 @@ param aksIdentityPrincipalId string
 // These are Azure built-in role IDs (constants, not secrets)
 
 var keyVaultSecretsOfficerRole = 'b86a8fe4-44ce-4948-aee5-eccb2c155cd7' // read/write secrets
-var storageAccountAcrPullRole = '7f951dda-4ed3-4680-a7ca-43fe172d538d' // pull ACR images
+//var storageAccountAcrPullRole = '7f951dda-4ed3-4680-a7ca-43fe172d538d' // pull ACR images
 var storageBlobDataReaderRole = '2a2b9908-6ea1-4ae2-8e65-a410df84e7d1'  // read blobs
 var storageBlobDataContributorRole = 'ba92f5b4-2d11-453d-a403-e96b0029c9fe' // read/write blobs
 var containerRegistryPullRole = '7f951dda-4ed3-4680-a7ca-43fe172d538d'  // pull from ACR

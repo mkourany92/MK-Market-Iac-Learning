@@ -9,7 +9,7 @@ param appServicePlanName string       // used as Container Apps environment name
 param appServiceName string           // used as container app name
 param location string
 param tags object
-param appServiceSubnetId string       // reserved — VNet injection requires /23 + Microsoft.App/environments delegation
+//param appServiceSubnetId string       // reserved — VNet injection requires /23 + Microsoft.App/environments delegation
 param appInsightsConnectionString string
 param environment string
 
