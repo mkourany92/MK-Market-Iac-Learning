@@ -48,11 +48,18 @@ steps:
     scriptType: 'bash'
     scriptLocation: 'inlineScript'
     inlineScript: |
-      az containerapp update \
-        --name ${{ parameters.containerAppName }} \
-        --resource-group ${{ parameters.containerAppRg }} \
-        --image ${{ parameters.acrName }}.azurecr.io/${{ parameters.imageRepository }}:${{ parameters.imageTag }}
+  # Configure managed identity for ACR pull (idempotent)
+  az containerapp registry set \
+    --name ${{ parameters.containerAppName }} \
+    --resource-group ${{ parameters.containerAppRg }} \
+    --server ${{ parameters.acrName }}.azurecr.io \
+    --identity system
 
+  # Update image
+  az containerapp update \
+    --name ${{ parameters.containerAppName }} \
+    --resource-group ${{ parameters.containerAppRg }} \
+    --image ${{ parameters.acrName }}.azurecr.io/${{ parameters.imageRepository }}:${{ parameters.imageTag }}
 # 3. Smoke test — verify Container App returns 200
 - task: AzureCLI@2
   displayName: 'Smoke Test'
