@@ -7,7 +7,7 @@ param location string
 param tags object
 param namePrefix string
 param aksSubnetId string
-param appServiceSubnetId string
+//param appServiceSubnetId string
 param managementSubnetId string
 param logAnalyticsWorkspaceId string
 param appInsightsConnectionString string
@@ -47,7 +47,7 @@ module appService './app-service.bicep' = if (deployAppService) {
     appServiceName: '${namePrefix}-app'
     location: location
     tags: tags
-    appServiceSubnetId: appServiceSubnetId
+    //appServiceSubnetId: appServiceSubnetId
     appInsightsConnectionString: appInsightsConnectionString
     environment: environment
   }

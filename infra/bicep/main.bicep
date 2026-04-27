@@ -84,7 +84,7 @@ module compute './modules/compute/main.bicep' = if (deployCompute) {
     tags: foundation.outputs.commonTags
     namePrefix: foundation.outputs.namePrefix
     aksSubnetId: network.outputs.aksSubnetId
-    appServiceSubnetId: network.outputs.appserviceSubnetId
+    //appServiceSubnetId: network.outputs.appserviceSubnetId
     managementSubnetId: network.outputs.managementSubnetId
     logAnalyticsWorkspaceId: monitoring.outputs.workspaceId
     appInsightsConnectionString: monitoring.outputs.appInsightsConnectionString
