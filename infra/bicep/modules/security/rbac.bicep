@@ -34,6 +34,18 @@ resource appKeyVaultRoleAssignment 'Microsoft.Authorization/roleAssignments@2022
   }
 }
 
+
+
+resource appAcrRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(acrId, appIdentityPrincipalId, containerRegistryPullRole)
+  scope: resourceGroup()
+  properties: {
+    roleDefinitionId: '/subscriptions/${subscription().subscriptionId}/providers/Microsoft.Authorization/roleDefinitions/${containerRegistryPullRole}'
+    principalId: appIdentityPrincipalId
+    principalType: 'ServicePrincipal'
+  }
+}
+
 resource appStorageRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
   name: guid(storageAccountId, appIdentityPrincipalId, storageBlobDataReaderRole)
   scope: resourceGroup()

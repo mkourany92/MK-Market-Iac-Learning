@@ -12,6 +12,7 @@ param tags object
 //param appServiceSubnetId string       // reserved — VNet injection requires /23 + Microsoft.App/environments delegation
 param appInsightsConnectionString string
 param environment string
+param acrLoginServer string   // e.g. mkmarketdevacr.azurecr.io
 
 resource containerAppEnv 'Microsoft.App/managedEnvironments@2024-03-01' = {
   name: '${appServicePlanName}-env'
@@ -40,6 +41,12 @@ resource containerApp 'Microsoft.App/containerApps@2024-03-01' = {
         transport: 'http'
         allowInsecure: false  // WHY: Reject plain HTTP, enforce HTTPS only
       }
+      registries: [
+        {
+          server: acrLoginServer
+          identity: 'system'  // WHY: Pull container images from ACR using Container Apps' system identity
+        }
+      ]
     }
     template: {
       containers: [

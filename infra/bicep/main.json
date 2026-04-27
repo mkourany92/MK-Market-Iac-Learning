@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.42.1.51946",
-      "templateHash": "14275438389845759432"
+      "templateHash": "13601122959146560640"
     }
   },
   "parameters": {
@@ -1962,9 +1962,6 @@
           "aksSubnetId": {
             "value": "[reference(resourceId('Microsoft.Resources/deployments', format('network-{0}', parameters('environment'))), '2025-04-01').outputs.aksSubnetId.value]"
           },
-          "appServiceSubnetId": {
-            "value": "[reference(resourceId('Microsoft.Resources/deployments', format('network-{0}', parameters('environment'))), '2025-04-01').outputs.appserviceSubnetId.value]"
-          },
           "managementSubnetId": {
             "value": "[reference(resourceId('Microsoft.Resources/deployments', format('network-{0}', parameters('environment'))), '2025-04-01').outputs.managementSubnetId.value]"
           },
@@ -1991,6 +1988,9 @@
           },
           "agentVmSize": {
             "value": "[parameters('agentVmSize')]"
+          },
+          "acrLoginServer": {
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', format('storage-{0}', parameters('environment'))), '2025-04-01').outputs.acrLoginServer.value]"
           }
         },
         "template": {
@@ -2000,7 +2000,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.42.1.51946",
-              "templateHash": "17148461792620327533"
+              "templateHash": "214598848152980611"
             }
           },
           "parameters": {
@@ -2017,9 +2017,6 @@
               "type": "string"
             },
             "aksSubnetId": {
-              "type": "string"
-            },
-            "appServiceSubnetId": {
               "type": "string"
             },
             "managementSubnetId": {
@@ -2054,6 +2051,9 @@
             "deployAppService": {
               "type": "bool",
               "defaultValue": true
+            },
+            "acrLoginServer": {
+              "type": "string"
             }
           },
           "variables": {
@@ -2248,8 +2248,8 @@
                   "tags": {
                     "value": "[parameters('tags')]"
                   },
-                  "appServiceSubnetId": {
-                    "value": "[parameters('appServiceSubnetId')]"
+                  "acrLoginServer": {
+                    "value": "[parameters('acrLoginServer')]"
                   },
                   "appInsightsConnectionString": {
                     "value": "[parameters('appInsightsConnectionString')]"
@@ -2265,7 +2265,7 @@
                     "_generator": {
                       "name": "bicep",
                       "version": "0.42.1.51946",
-                      "templateHash": "2568354760609891612"
+                      "templateHash": "8807389985192743948"
                     }
                   },
                   "parameters": {
@@ -2281,13 +2281,13 @@
                     "tags": {
                       "type": "object"
                     },
-                    "appServiceSubnetId": {
-                      "type": "string"
-                    },
                     "appInsightsConnectionString": {
                       "type": "string"
                     },
                     "environment": {
+                      "type": "string"
+                    },
+                    "acrLoginServer": {
                       "type": "string"
                     }
                   },
@@ -2319,7 +2319,13 @@
                             "targetPort": 80,
                             "transport": "http",
                             "allowInsecure": false
-                          }
+                          },
+                          "registries": [
+                            {
+                              "server": "[parameters('acrLoginServer')]",
+                              "identity": "system"
+                            }
+                          ]
                         },
                         "template": {
                           "containers": [
@@ -2659,7 +2665,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.42.1.51946",
-              "templateHash": "18192063179245087672"
+              "templateHash": "18021949849930365943"
             }
           },
           "parameters": {
@@ -2825,7 +2831,7 @@
                     "_generator": {
                       "name": "bicep",
                       "version": "0.42.1.51946",
-                      "templateHash": "17810881594100641244"
+                      "templateHash": "16241164187980297341"
                     }
                   },
                   "parameters": {
@@ -2850,7 +2856,6 @@
                   },
                   "variables": {
                     "keyVaultSecretsOfficerRole": "b86a8fe4-44ce-4948-aee5-eccb2c155cd7",
-                    "storageAccountAcrPullRole": "7f951dda-4ed3-4680-a7ca-43fe172d538d",
                     "storageBlobDataReaderRole": "2a2b9908-6ea1-4ae2-8e65-a410df84e7d1",
                     "storageBlobDataContributorRole": "ba92f5b4-2d11-453d-a403-e96b0029c9fe",
                     "containerRegistryPullRole": "7f951dda-4ed3-4680-a7ca-43fe172d538d"
@@ -2862,6 +2867,16 @@
                       "name": "[guid(parameters('keyVaultId'), parameters('appIdentityPrincipalId'), variables('keyVaultSecretsOfficerRole'))]",
                       "properties": {
                         "roleDefinitionId": "[format('/subscriptions/{0}/providers/Microsoft.Authorization/roleDefinitions/{1}', subscription().subscriptionId, variables('keyVaultSecretsOfficerRole'))]",
+                        "principalId": "[parameters('appIdentityPrincipalId')]",
+                        "principalType": "ServicePrincipal"
+                      }
+                    },
+                    {
+                      "type": "Microsoft.Authorization/roleAssignments",
+                      "apiVersion": "2022-04-01",
+                      "name": "[guid(parameters('acrId'), parameters('appIdentityPrincipalId'), variables('containerRegistryPullRole'))]",
+                      "properties": {
+                        "roleDefinitionId": "[format('/subscriptions/{0}/providers/Microsoft.Authorization/roleDefinitions/{1}', subscription().subscriptionId, variables('containerRegistryPullRole'))]",
                         "principalId": "[parameters('appIdentityPrincipalId')]",
                         "principalType": "ServicePrincipal"
                       }

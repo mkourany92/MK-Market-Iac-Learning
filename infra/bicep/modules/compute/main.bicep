@@ -20,6 +20,8 @@ param agentVmSize string = 'Standard_DC2as_v5'
 param deployAks bool = true
 param deployAppService bool = true
 
+param acrLoginServer string
+
 var aksNodeCount = environment == 'prod' ? 2 : 1
 var aksMinNodes = environment == 'prod' ? 2 : 1
 var aksMaxNodes = environment == 'prod' ? 5 : 3
@@ -48,6 +50,7 @@ module appService './app-service.bicep' = if (deployAppService) {
     location: location
     tags: tags
     //appServiceSubnetId: appServiceSubnetId
+    acrLoginServer: acrLoginServer
     appInsightsConnectionString: appInsightsConnectionString
     environment: environment
   }
