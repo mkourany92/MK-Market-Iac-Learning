@@ -37,7 +37,7 @@ resource containerApp 'Microsoft.App/containerApps@2024-03-01' = {
     configuration: {
       ingress: {
         external: true // WHY: Exposes HTTPS endpoint publicly; TLS handled by platform
-        targetPort: 80
+        targetPort: 8080
         transport: 'http'
         allowInsecure: false // WHY: Reject plain HTTP, enforce HTTPS only
       }
@@ -62,6 +62,10 @@ resource containerApp 'Microsoft.App/containerApps@2024-03-01' = {
               name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
               value: appInsightsConnectionString
               // WHY: Enables App Insights telemetry without SDK changes
+            }
+            {
+              name: 'APP_ENVIRONMENT'
+              value: environment // 'dev', 'test', or 'prod'
             }
           ]
         }

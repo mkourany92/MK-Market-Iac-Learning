@@ -17,67 +17,74 @@ parameters:
     type: string
   - name: adminPassword
     type: string
-    default: ''
+    default: ""
 
 steps:
-# 1. Deploy Bicep infrastructure (incremental — only changes apply)
-- task: AzureCLI@2
-  displayName: 'Deploy Bicep Infrastructure'
-  inputs:
-    azureSubscription: ${{ parameters.serviceConnection }}
-    scriptType: 'bash'
-    scriptLocation: 'inlineScript'
-    inlineScript: |
-      EXTRA_PARAMS=""
-      if [ -n "${{ parameters.adminPassword }}" ]; then
-        EXTRA_PARAMS="adminPassword=${{ parameters.adminPassword }}"
-      fi
+  # 1. Deploy Bicep infrastructure (incremental — only changes apply)
+  - task: AzureCLI@2
+    displayName: "Deploy Bicep Infrastructure"
+    inputs:
+      azureSubscription: ${{ parameters.serviceConnection }}
+      scriptType: "bash"
+      scriptLocation: "inlineScript"
+      inlineScript: |
+        EXTRA_PARAMS=""
+        if [ -n "${{ parameters.adminPassword }}" ]; then
+          EXTRA_PARAMS="adminPassword=${{ parameters.adminPassword }}"
+        fi
 
-      az deployment group create \
-        --resource-group ${{ parameters.resourceGroup }} \
-        --template-file infra/bicep/main.bicep \
-        --parameters @${{ parameters.parameterFile }} \
-        $( [ -n "$EXTRA_PARAMS" ] && echo "--parameters $EXTRA_PARAMS" ) \
-        --mode Incremental
+        az deployment group create \
+          --resource-group ${{ parameters.resourceGroup }} \
+          --template-file infra/bicep/main.bicep \
+          --parameters @${{ parameters.parameterFile }} \
+          $( [ -n "$EXTRA_PARAMS" ] && echo "--parameters $EXTRA_PARAMS" ) \
+          --mode Incremental
 
-# 2. Update Container App to use the newly built image
-- task: AzureCLI@2
-  displayName: 'Update Container App Image'
-  inputs:
-    azureSubscription: ${{ parameters.serviceConnection }}
-    scriptType: 'bash'
-    scriptLocation: 'inlineScript'
-    inlineScript: |
-      # Configure managed identity for ACR pull (idempotent)
-      az containerapp registry set \
-        --name ${{ parameters.containerAppName }} \
-        --resource-group ${{ parameters.containerAppRg }} \
-        --server ${{ parameters.acrName }}.azurecr.io \
-        --identity system
+  # 2. Update Container App to use the newly built image
+  - task: AzureCLI@2
+    displayName: "Update Container App Image"
+    inputs:
+      azureSubscription: ${{ parameters.serviceConnection }}
+      scriptType: "bash"
+      scriptLocation: "inlineScript"
+      inlineScript: |
+        # Configure managed identity for ACR pull (idempotent)
+        az containerapp registry set \
+          --name ${{ parameters.containerAppName }} \
+          --resource-group ${{ parameters.containerAppRg }} \
+          --server ${{ parameters.acrName }}.azurecr.io \
+          --identity system
 
-      # Update image
-      az containerapp update \
-        --name ${{ parameters.containerAppName }} \
-        --resource-group ${{ parameters.containerAppRg }} \
-        --image ${{ parameters.acrName }}.azurecr.io/${{ parameters.imageRepository }}:${{ parameters.imageTag }}
-# 3. Smoke test — verify Container App returns 200
-- task: AzureCLI@2
-  displayName: 'Smoke Test'
-  inputs:
-    azureSubscription: ${{ parameters.serviceConnection }}
-    scriptType: 'bash'
-    scriptLocation: 'inlineScript'
-    inlineScript: |
-      FQDN=$(az containerapp show \
-        --name ${{ parameters.containerAppName }} \
-        --resource-group ${{ parameters.containerAppRg }} \
-        --query "properties.configuration.ingress.fqdn" -o tsv)
-      
-      echo "Testing https://$FQDN"
-      STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://$FQDN")
-      
-      if [ "$STATUS" != "200" ]; then
-        echo "Smoke test FAILED — HTTP $STATUS"
+        # Update image
+        az containerapp update \
+          --name ${{ parameters.containerAppName }} \
+          --resource-group ${{ parameters.containerAppRg }} \
+          --image ${{ parameters.acrName }}.azurecr.io/${{ parameters.imageRepository }}:${{ parameters.imageTag }}
+  # 3. Smoke test — verify Container App returns 200
+  - task: AzureCLI@2
+    displayName: "Smoke Test"
+    inputs:
+      azureSubscription: ${{ parameters.serviceConnection }}
+      scriptType: "bash"
+      scriptLocation: "inlineScript"
+      inlineScript: |
+        FQDN=$(az containerapp show \
+          --name ${{ parameters.containerAppName }} \
+          --resource-group ${{ parameters.containerAppRg }} \
+          --query "properties.configuration.ingress.fqdn" -o tsv)
+
+        echo "Testing https://$FQDN"
+
+        # Retry for up to 3 minutes (cold start from scale-to-zero)
+        for i in $(seq 1 18); do
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "https://$FQDN" || echo "000")
+          echo "Attempt $i: HTTP $STATUS"
+          if [ "$STATUS" = "200" ]; then
+            echo "Smoke test PASSED"
+            exit 0
+          fi
+          sleep 10
+        done
+
+        echo "Smoke test FAILED after 3 minutes"
         exit 1
-      fi
-      echo "Smoke test PASSED — HTTP $STATUS"
