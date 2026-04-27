@@ -61,13 +61,14 @@ steps:
           --resource-group ${{ parameters.containerAppRg }} \
           --image ${{ parameters.acrName }}.azurecr.io/${{ parameters.imageRepository }}:${{ parameters.imageTag }}
   # 3. Smoke test — verify Container App returns 200
-  - task: AzureCLI@2
+
+ 
     displayName: "Smoke Test"
     inputs:
       azureSubscription: ${{ parameters.serviceConnection }}
       scriptType: "bash"
       scriptLocation: "inlineScript"
-      inlineScript: |
+      inlineScript: 
         echo "Waiting for latest revision to become ready..."
 
         for i in $(seq 1 18); do
@@ -91,3 +92,5 @@ steps:
 
         echo "Smoke test FAILED — revision never reached Running state"
         exit 1
+        
+|
