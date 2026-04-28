@@ -61,4 +61,39 @@ steps:
           --resource-group ${{ parameters.containerAppRg }} \
           --image ${{ parameters.acrName }}.azurecr.io/${{ parameters.imageRepository }}:${{ parameters.imageTag }}
   # 3. Smoke test — verify Container App returns 200
+  # 1.5 — Assign AcrPull on shared ACR to this environment's Container App identity
+  - task: AzureCLI@2
+    displayName: "Assign AcrPull to Container App Identity"
+    inputs:
+      azureSubscription: ${{ parameters.serviceConnection }}
+      scriptType: "bash"
+      scriptLocation: "inlineScript"
+      inlineScript: |
+        # Get the Container App's system-assigned managed identity
+        PRINCIPAL_ID=$(az containerapp show \
+          --name ${{ parameters.containerAppName }} \
+          --resource-group ${{ parameters.containerAppRg }} \
+          --query identity.principalId -o tsv)
 
+        echo "Container App principal ID: $PRINCIPAL_ID"
+
+        ACR_SCOPE="/subscriptions/3e8bebe7-bf59-4cc5-a57f-0493328486e7/resourceGroups/mkmarket-dev-rg/providers/Microsoft.ContainerRegistry/registries/${{ parameters.acrName }}"
+
+        # Check if AcrPull already assigned — create only if missing
+        EXISTING=$(az role assignment list \
+          --assignee $PRINCIPAL_ID \
+          --role "AcrPull" \
+          --scope $ACR_SCOPE \
+          --query "[0].id" -o tsv 2>/dev/null)
+
+        if [ -z "$EXISTING" ]; then
+          echo "Assigning AcrPull..."
+          az role assignment create \
+            --assignee $PRINCIPAL_ID \
+            --role "AcrPull" \
+            --scope $ACR_SCOPE
+          echo "AcrPull assigned. Waiting 30s for propagation..."
+          sleep 30
+        else
+          echo "AcrPull already exists, skipping."
+        fi
