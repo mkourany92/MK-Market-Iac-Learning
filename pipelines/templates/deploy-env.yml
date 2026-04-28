@@ -59,7 +59,8 @@ steps:
         az containerapp update \
           --name ${{ parameters.containerAppName }} \
           --resource-group ${{ parameters.containerAppRg }} \
-          --image ${{ parameters.acrName }}.azurecr.io/${{ parameters.imageRepository }}:${{ parameters.imageTag }}
+          --image ${{ parameters.acrName }}.azurecr.io/${{ parameters.imageRepository }}:${{ parameters.imageTag }} \
+          --no-wait
   # 3. Smoke test — verify Container App returns 200
   # 1.5 — Assign AcrPull on shared ACR to this environment's Container App identity
   - task: AzureCLI@2
