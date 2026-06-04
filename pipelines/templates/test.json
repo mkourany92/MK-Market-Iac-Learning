@@ -1,0 +1,22 @@
+[
+  {
+    "condition": null,
+    "conditionVersion": null,
+    "createdBy": "c12f167a-a163-4a11-bdf3-a6bc6996ad33",
+    "createdOn": "2026-04-28T07:49:34.067165+00:00",
+    "delegatedManagedIdentityResourceId": null,
+    "description": null,
+    "id": "/subscriptions/3e8bebe7-bf59-4cc5-a57f-0493328486e7/resourceGroups/mkmarket-dev-rg/providers/Microsoft.ContainerRegistry/registries/mkmarketdevacr/providers/Microsoft.Authorization/roleAssignments/d3da9972-9efd-403b-bea3-5c2093cd2fc3",
+    "name": "d3da9972-9efd-403b-bea3-5c2093cd2fc3",
+    "principalId": "65ae14c1-725a-4490-9a32-3bd412b95920",
+    "principalName": "c2f6f0c5-ef70-4d77-9390-0acc6f777992",
+    "principalType": "ServicePrincipal",
+    "resourceGroup": "mkmarket-dev-rg",
+    "roleDefinitionId": "/subscriptions/3e8bebe7-bf59-4cc5-a57f-0493328486e7/providers/Microsoft.Authorization/roleDefinitions/7f951dda-4ed3-4680-a7ca-43fe172d538d",
+    "roleDefinitionName": "AcrPull",
+    "scope": "/subscriptions/3e8bebe7-bf59-4cc5-a57f-0493328486e7/resourceGroups/mkmarket-dev-rg/providers/Microsoft.ContainerRegistry/registries/mkmarketdevacr",
+    "type": "Microsoft.Authorization/roleAssignments",
+    "updatedBy": "c12f167a-a163-4a11-bdf3-a6bc6996ad33",
+    "updatedOn": "2026-04-28T07:49:34.067165+00:00"
+  }
+]

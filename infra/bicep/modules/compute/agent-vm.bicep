@@ -13,6 +13,9 @@ param adminUsername string = 'azuredevops'
 param vmSize string = 'Standard_DS2_v2'
 @secure()
 param adminPassword string
+param environment string = 'dev'
+param scriptStorageBaseUrl string = ''
+param dscPackageSasUrl string = ''
 
 resource agentNic 'Microsoft.Network/networkInterfaces@2023-09-01' = {
   name: '${vmName}-nic'
@@ -114,6 +117,18 @@ resource autoShutdown 'Microsoft.DevTestLab/schedules@2018-09-15' = {
     notificationSettings: {
       status: 'Disabled'
     }
+  }
+}
+
+module vmExtensions './agent-vm-extensions.bicep' = {
+  name: 'vm-extensions-${vmName}'
+  params: {
+    vmName: agentVm.name
+    location: location
+    tags: tags
+    environment: environment
+    scriptStorageBaseUrl: scriptStorageBaseUrl
+    dscPackageSasUrl: dscPackageSasUrl
   }
 }
 

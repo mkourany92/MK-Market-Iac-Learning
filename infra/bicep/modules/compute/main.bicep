@@ -26,7 +26,6 @@ var aksNodeCount = environment == 'prod' ? 2 : 1
 var aksMinNodes = environment == 'prod' ? 2 : 1
 var aksMaxNodes = environment == 'prod' ? 5 : 3
 
-
 module aksCluster './aks-cluster.bicep' = if (deployAks) {
   name: 'aks-${environment}'
   params: {
@@ -65,7 +64,10 @@ module agentVm './agent-vm.bicep' = if (deployAgentVm) {
     tags: tags
     subnetId: managementSubnetId
     vmSize: agentVmSize
-    adminPassword: adminPassword   // ← add this line
+    adminPassword: adminPassword // ← add this line
+    environment: environment
+    scriptStorageBaseUrl: scriptStorageBaseUrl
+    dscPackageSasUrl: dscPackageSasUrl
   }
 }
 
@@ -79,3 +81,5 @@ output appServicePrincipalId string = deployAppService ? appService!.outputs.app
 output appServiceDefaultHostname string = deployAppService ? appService!.outputs.appServiceDefaultHostname : ''
 output agentVmId string = deployAgentVm ? agentVm!.outputs.agentVmId : ''
 output agentVmPrincipalId string = deployAgentVm ? agentVm!.outputs.agentVmPrincipalId : ''
+param scriptStorageBaseUrl string = ''
+param dscPackageSasUrl string = ''
